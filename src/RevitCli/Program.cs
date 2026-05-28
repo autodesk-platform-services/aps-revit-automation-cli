@@ -2,12 +2,14 @@ using Microsoft.Extensions.DependencyInjection;
 using RevitCli.Commands;
 using RevitCli.Commands.Auth;
 using RevitCli.Infrastructure;
+using RevitCli.Services;
 using Spectre.Console.Cli;
 
 var services = new ServiceCollection();
 services.AddApsHttpClient();
 services.AddSingleton<TokenStore>();
 services.AddSingleton<AppStateStore>();
+services.AddSingleton<AuthService>();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
