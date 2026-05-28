@@ -13,7 +13,7 @@ app:
 inputs:
   model:
     type: "cloudWorksharedModel"
-    folderUrl: "https://acc.autodesk.com/docs/files/projects/abc123/folders/urn%3Aadsk.wipemea%3Afs.folder%3Aco.example"
+    folderUrl: "https://acc.autodesk.com/docs/files/projects/00000000-0000-0000-0000-000000000000?folderUrn=urn%3Aadsk.wipprod%3Afs.folder%3Aco.example&viewModel=detail&moduleId=folders"
     modelName: "MyBuilding"
   params:
     someValue: "example"

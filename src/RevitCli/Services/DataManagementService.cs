@@ -47,6 +47,14 @@ public class DataManagementService
                 folderId = HttpUtility.UrlDecode(segments[i + 1]);
         }
 
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        var folderUrnFromQuery = query["folderUrn"];
+        if (!string.IsNullOrEmpty(folderUrnFromQuery))
+            folderId = folderUrnFromQuery;
+
+        if (!string.IsNullOrEmpty(projectId) && !projectId.StartsWith("b.", StringComparison.OrdinalIgnoreCase))
+            projectId = "b." + projectId;
+
         if (string.IsNullOrEmpty(projectId))
             throw new InvalidOperationException($"Could not extract project ID from folder URL: {folderUrl}");
 
