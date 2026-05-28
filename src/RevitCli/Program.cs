@@ -11,6 +11,7 @@ services.AddSingleton<TokenStore>();
 services.AddSingleton<AppStateStore>();
 services.AddSingleton<AuthService>();
 services.AddSingleton<DesignAutomationService>();
+services.AddSingleton<DataManagementService>();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
