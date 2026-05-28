@@ -5,6 +5,9 @@ using RevitCli.Infrastructure;
 using Spectre.Console.Cli;
 
 var services = new ServiceCollection();
+services.AddApsHttpClient();
+services.AddSingleton<TokenStore>();
+services.AddSingleton<AppStateStore>();
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp(registrar);
