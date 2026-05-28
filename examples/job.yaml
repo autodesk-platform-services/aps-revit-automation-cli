@@ -1,0 +1,24 @@
+authentication:
+  clientId: "YOUR_CLIENT_ID"
+  clientSecret: "YOUR_CLIENT_SECRET"
+
+revit:
+  version: "latest"
+
+app:
+  name: "my-revit-job"
+  description: "Example Revit automation job"
+  path: "./examples/sample-appbundle"
+
+inputs:
+  model:
+    type: "cloudWorksharedModel"
+    folderUrl: "https://acc.autodesk.com/docs/files/projects/abc123/folders/urn%3Aadsk.wipemea%3Afs.folder%3Aco.example"
+    modelName: "MyBuilding"
+  params:
+    someValue: "example"
+
+outputs:
+  result:
+    type: "file"
+    path: "./outputs/result.zip"
