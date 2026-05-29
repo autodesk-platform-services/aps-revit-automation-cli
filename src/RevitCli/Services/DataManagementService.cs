@@ -21,11 +21,9 @@ public class DataManagementService
 
         var client = _httpClientFactory.CreateClient("aps");
 
-        var (hubId, region) = await FindHubForProjectAsync(client, projectId, threeLeggedToken);
+        var (_, region) = await FindHubForProjectAsync(client, projectId, threeLeggedToken);
 
-        var itemId = await FindModelInFolderAsync(client, hubId, folderId, modelName, threeLeggedToken);
-
-        var (projectGuid, modelGuid) = await GetModelGuidsFromTipAsync(client, hubId, itemId, threeLeggedToken);
+        var (projectGuid, modelGuid) = await FindModelInFolderAsync(client, projectId, folderId, modelName, threeLeggedToken);
 
         return new CloudModelIds(region, projectGuid, modelGuid);
     }
@@ -67,7 +65,7 @@ public class DataManagementService
     private async Task<(string HubId, string Region)> FindHubForProjectAsync(
         HttpClient client, string projectId, string token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, "/data/v1/hubs");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/project/v1/hubs");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);
@@ -98,18 +96,18 @@ public class DataManagementService
     private async Task<bool> ProjectExistsInHubAsync(
         HttpClient client, string hubId, string projectId, string token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/data/v1/hubs/{hubId}/projects/{projectId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/project/v1/hubs/{hubId}/projects/{projectId}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);
         return response.IsSuccessStatusCode;
     }
 
-    private async Task<string> FindModelInFolderAsync(
-        HttpClient client, string hubId, string folderId, string modelName, string token)
+    private async Task<(string ProjectGuid, string ModelGuid)> FindModelInFolderAsync(
+        HttpClient client, string projectId, string folderId, string modelName, string token)
     {
         var normalizedSearch = NormalizeModelName(modelName);
-        var url = $"/data/v1/projects/{hubId}/folders/{Uri.EscapeDataString(folderId)}/contents";
+        var url = $"/data/v1/projects/{projectId}/folders/{Uri.EscapeDataString(folderId)}/contents";
         var availableNames = new List<string>();
 
         while (url is not null)
@@ -135,8 +133,17 @@ public class DataManagementService
 
                 availableNames.Add(displayName);
 
-                if (NormalizeModelName(displayName).Equals(normalizedSearch, StringComparison.OrdinalIgnoreCase))
-                    return item.GetProperty("id").GetString()!;
+                if (!NormalizeModelName(displayName).Equals(normalizedSearch, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var tipVersionId = item.GetProperty("relationships")
+                    .GetProperty("tip")
+                    .GetProperty("data")
+                    .GetProperty("id")
+                    .GetString()
+                    ?? throw new InvalidOperationException($"Item '{displayName}' has no tip version id.");
+
+                return ExtractGuidsFromIncluded(doc.RootElement, tipVersionId, displayName);
             }
 
             url = null;
@@ -156,29 +163,32 @@ public class DataManagementService
             $"Model '{modelName}' not found in folder. Available items: {available}");
     }
 
-    private async Task<(string ProjectGuid, string ModelGuid)> GetModelGuidsFromTipAsync(
-        HttpClient client, string hubId, string itemId, string token)
+    private static (string ProjectGuid, string ModelGuid) ExtractGuidsFromIncluded(
+        JsonElement root, string tipVersionId, string displayName)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get,
-            $"/data/v1/projects/{hubId}/items/{Uri.EscapeDataString(itemId)}/tip");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (!root.TryGetProperty("included", out var included) || included.ValueKind != JsonValueKind.Array)
+            throw new InvalidOperationException($"Response for item '{displayName}' has no 'included' tip versions.");
 
-        var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        foreach (var entry in included.EnumerateArray())
+        {
+            if (entry.GetProperty("id").GetString() != tipVersionId)
+                continue;
 
-        var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
-        var data = doc.RootElement.GetProperty("data");
-        var extensionData = data.GetProperty("attributes")
-            .GetProperty("extension")
-            .GetProperty("data");
+            var extensionData = entry.GetProperty("attributes")
+                .GetProperty("extension")
+                .GetProperty("data");
 
-        var projectGuid = extensionData.GetProperty("projectGuid").GetString()
-            ?? throw new InvalidOperationException("Response missing projectGuid in tip version.");
+            var projectGuid = extensionData.GetProperty("projectGuid").GetString()
+                ?? throw new InvalidOperationException($"Tip version for '{displayName}' missing projectGuid.");
 
-        var modelGuid = extensionData.GetProperty("modelGuid").GetString()
-            ?? throw new InvalidOperationException("Response missing modelGuid in tip version.");
+            var modelGuid = extensionData.GetProperty("modelGuid").GetString()
+                ?? throw new InvalidOperationException($"Tip version for '{displayName}' missing modelGuid.");
 
-        return (projectGuid, modelGuid);
+            return (projectGuid, modelGuid);
+        }
+
+        throw new InvalidOperationException(
+            $"Tip version '{tipVersionId}' for item '{displayName}' not found in response 'included' array.");
     }
 
     private static string NormalizeModelName(string name)
