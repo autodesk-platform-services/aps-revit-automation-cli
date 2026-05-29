@@ -54,6 +54,8 @@ public class YamlConfigService
 
         if (string.IsNullOrWhiteSpace(config.App.Name))
             errors.Add("'app.name' is required.");
+        else if (config.App.Name.Contains('-'))
+            errors.Add($"'app.name' must not contain hyphens ('-'); the Design Automation API rejects hyphenated AppBundle ids. Got: '{config.App.Name}'.");
 
         if (string.IsNullOrWhiteSpace(config.App.Path))
             errors.Add("'app.path' is required.");

@@ -66,7 +66,7 @@ See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 | `authentication.clientId` | Yes | APS application client ID |
 | `authentication.clientSecret` | Yes | APS application client secret |
 | `revit.version` | Yes | Revit version: `latest`, `2022`, `2023`, `2024`, `2025`, `2026`, or `2027`. `latest` resolves to `2027`. |
-| `app.name` | Yes | Unique name for the AppBundle and Activity |
+| `app.name` | Yes | Unique name for the AppBundle and Activity. Must not contain hyphens (the Design Automation API rejects hyphenated AppBundle ids). |
 | `app.description` | No | Optional description |
 | `app.path` | Yes | Path to the local AppBundle folder (must contain exactly one `.bundle` subfolder) |
 | `inputs.model.type` | Yes | Must be `cloudWorksharedModel` |

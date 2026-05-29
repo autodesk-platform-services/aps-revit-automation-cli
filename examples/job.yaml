@@ -6,7 +6,7 @@ revit:
   version: "latest"
 
 app:
-  name: "my-revit-job"
+  name: "myRevitJob"
   description: "Example Revit automation job"
   path: "./examples/sample-appbundle"
 
