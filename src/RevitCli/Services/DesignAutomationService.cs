@@ -28,7 +28,7 @@ public class DesignAutomationService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("get DA nickname");
 
         var content = await response.Content.ReadAsStringAsync();
         return content.Trim('"');
@@ -112,7 +112,7 @@ public class DesignAutomationService
             createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
             var createResponse = await client.SendAsync(createRequest);
-            createResponse.EnsureSuccessStatusCode();
+            await createResponse.EnsureSuccessOrThrowAsync("create activity");
 
             activityResponse = await JsonSerializer.DeserializeAsync<ActivityResponse>(
                 await createResponse.Content.ReadAsStreamAsync())
@@ -122,7 +122,7 @@ public class DesignAutomationService
         }
         else
         {
-            existsResponse.EnsureSuccessStatusCode();
+            await existsResponse.EnsureSuccessOrThrowAsync("get activity");
 
             var updateRequest = new HttpRequestMessage(HttpMethod.Patch, $"{DaBasePath}/activities/{qualifiedActivityId}")
             {
@@ -131,7 +131,7 @@ public class DesignAutomationService
             updateRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
             var updateResponse = await client.SendAsync(updateRequest);
-            updateResponse.EnsureSuccessStatusCode();
+            await updateResponse.EnsureSuccessOrThrowAsync("update activity");
 
             activityResponse = await JsonSerializer.DeserializeAsync<ActivityResponse>(
                 await updateResponse.Content.ReadAsStreamAsync())
@@ -192,7 +192,7 @@ public class DesignAutomationService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("submit work item");
 
         var workItemResponse = await JsonSerializer.DeserializeAsync<WorkItemResponse>(
             await response.Content.ReadAsStreamAsync())
@@ -214,7 +214,7 @@ public class DesignAutomationService
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
             var response = await client.SendAsync(request, ct);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessOrThrowAsync("poll work item", ct);
 
             var workItem = await JsonSerializer.DeserializeAsync<WorkItemResponse>(
                 await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct)
@@ -245,7 +245,7 @@ public class DesignAutomationService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("create app bundle");
 
         return await JsonSerializer.DeserializeAsync<AppBundleResponse>(
             await response.Content.ReadAsStreamAsync())
@@ -265,7 +265,7 @@ public class DesignAutomationService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("create app bundle version");
 
         return await JsonSerializer.DeserializeAsync<AppBundleResponse>(
             await response.Content.ReadAsStreamAsync())
@@ -288,7 +288,7 @@ public class DesignAutomationService
 
         using var httpClient = new HttpClient();
         var response = await httpClient.PostAsync(uploadParams.EndpointUrl, formContent);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("upload app bundle zip to S3");
     }
 
     private static async Task EnsureAliasAsync(
@@ -306,7 +306,7 @@ public class DesignAutomationService
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessOrThrowAsync("create alias");
         }
         else
         {
@@ -320,7 +320,7 @@ public class DesignAutomationService
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessOrThrowAsync("update alias");
         }
     }
 

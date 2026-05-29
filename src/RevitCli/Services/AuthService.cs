@@ -39,7 +39,7 @@ public class AuthService
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("2-legged token");
 
         var tokenResponse = await JsonSerializer.DeserializeAsync<TokenResponse>(
             await response.Content.ReadAsStreamAsync())
@@ -129,7 +129,7 @@ public class AuthService
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("authorization code exchange");
 
         var tokenResponse = await JsonSerializer.DeserializeAsync<TokenResponse>(
             await response.Content.ReadAsStreamAsync())

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using RevitCli.Infrastructure;
 
 namespace RevitCli.Services;
 
@@ -28,7 +29,7 @@ public class OssService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync($"create OSS bucket '{bucketKey}'");
     }
 
     public string GetObjectUrn(string bucketKey, string objectName)
@@ -46,7 +47,7 @@ public class OssService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync($"get OSS signed download URL for '{objectName}'");
 
         var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
         var signedUrl = doc.RootElement.GetProperty("url").GetString()
@@ -74,6 +75,6 @@ public class OssService
         if (response.StatusCode == HttpStatusCode.NotFound)
             return;
 
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync($"delete OSS bucket '{bucketKey}'");
     }
 }

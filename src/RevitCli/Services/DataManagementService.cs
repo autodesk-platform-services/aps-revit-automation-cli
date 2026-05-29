@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Web;
+using RevitCli.Infrastructure;
 
 namespace RevitCli.Services;
 
@@ -69,7 +70,7 @@ public class DataManagementService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+        await response.EnsureSuccessOrThrowAsync("list hubs");
 
         var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
         var hubs = doc.RootElement.GetProperty("data");
@@ -116,7 +117,7 @@ public class DataManagementService
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
             var response = await client.SendAsync(request);
-            response.EnsureSuccessStatusCode();
+            await response.EnsureSuccessOrThrowAsync("list folder contents");
 
             var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
             var items = doc.RootElement.GetProperty("data");
