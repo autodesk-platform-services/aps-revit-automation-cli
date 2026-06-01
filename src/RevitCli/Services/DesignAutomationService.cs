@@ -269,7 +269,7 @@ public class DesignAutomationService
     private static async Task<bool> AppBundleEntityExistsAsync(
         HttpClient client, string appName, string token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/appbundles/{appName}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/appbundles/{appName}/aliases");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);
@@ -283,7 +283,7 @@ public class DesignAutomationService
     private static async Task<bool> ActivityEntityExistsAsync(
         HttpClient client, string activityId, string token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/activities/{activityId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/activities/{activityId}/aliases");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.SendAsync(request);
