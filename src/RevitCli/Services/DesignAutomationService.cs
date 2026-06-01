@@ -40,35 +40,40 @@ public class DesignAutomationService
         string zipPath,
         string zipHash,
         string nickname,
+        string aliasName,
         string twoLeggedToken)
     {
         var client = _httpClientFactory.CreateClient("aps");
         var qualifiedId = $"{nickname}.{appName}";
+        var aliasBasePath = $"{DaBasePath}/appbundles/{appName}/aliases";
         var state = await _appStateStore.GetAppStateAsync(appName);
 
         if (state is not null && state.ZipHash == zipHash)
         {
-            if (await AppBundleAliasExistsAsync(client, qualifiedId, "prod", twoLeggedToken))
+            if (await AppBundleAliasExistsAsync(client, qualifiedId, aliasName, twoLeggedToken))
                 return (state.AppBundleVersion, WasSkipped: true);
+
+            if (await AppBundleEntityExistsAsync(client, appName, twoLeggedToken))
+            {
+                await EnsureAliasAsync(client, aliasBasePath, aliasName, state.AppBundleVersion, isNew: true, twoLeggedToken);
+                return (state.AppBundleVersion, WasSkipped: true);
+            }
 
             state = null;
         }
 
-        var version = state?.AppBundleVersion ?? 0;
+        var bundleEntityExists = await AppBundleEntityExistsAsync(client, appName, twoLeggedToken);
 
-        AppBundleResponse bundleResponse;
-        if (version == 0)
-        {
-            bundleResponse = await CreateAppBundleAsync(client, appName, engineId, twoLeggedToken);
-        }
-        else
-        {
-            bundleResponse = await UpdateAppBundleAsync(client, qualifiedId, engineId, twoLeggedToken);
-        }
+        AppBundleResponse bundleResponse = bundleEntityExists
+            ? await UpdateAppBundleAsync(client, qualifiedId, engineId, twoLeggedToken)
+            : await CreateAppBundleAsync(client, appName, engineId, twoLeggedToken);
 
         var newVersion = ExtractVersion(bundleResponse.Id);
         await UploadZipToS3Async(bundleResponse.UploadParameters!, zipPath);
-        await EnsureAliasAsync(client, $"{DaBasePath}/appbundles/{appName}/aliases", "prod", newVersion, version == 0, twoLeggedToken);
+
+        var aliasExists = await AppBundleAliasExistsAsync(client, qualifiedId, aliasName, twoLeggedToken);
+        await EnsureAliasAsync(client, aliasBasePath, aliasName, newVersion, isNew: !aliasExists, twoLeggedToken);
+
         await _appStateStore.SaveAppStateAsync(appName, newVersion, zipHash);
 
         return (newVersion, WasSkipped: false);
@@ -78,12 +83,13 @@ public class DesignAutomationService
         string appName,
         string engineId,
         string nickname,
+        string aliasName,
         string twoLeggedToken)
     {
         var client = _httpClientFactory.CreateClient("aps");
         var activityId = $"{appName}Activity";
-        var qualifiedAppBundle = $"{nickname}.{appName}+prod";
-        var qualifiedActivityId = $"{nickname}.{activityId}+prod";
+        var qualifiedAppBundle = $"{nickname}.{appName}+{aliasName}";
+        var aliasBasePath = $"{DaBasePath}/activities/{activityId}/aliases";
 
         var commandLine = $"$(engine.path)\\\\revitcoreconsole.exe /al \"$(appbundles[{appName}].path)\"";
 
@@ -111,13 +117,26 @@ public class DesignAutomationService
             parameters
         };
 
+        var entityExists = await ActivityEntityExistsAsync(client, activityId, twoLeggedToken);
         ActivityResponse activityResponse;
 
-        var existsRequest = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/activities/{qualifiedActivityId}");
-        existsRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
-        var existsResponse = await client.SendAsync(existsRequest);
+        if (entityExists)
+        {
+            var versionJson = JsonSerializer.Serialize(newVersionPayload);
+            var versionRequest = new HttpRequestMessage(HttpMethod.Post, $"{DaBasePath}/activities/{activityId}/versions")
+            {
+                Content = new StringContent(versionJson, Encoding.UTF8, "application/json")
+            };
+            versionRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
-        if (existsResponse.StatusCode == HttpStatusCode.NotFound)
+            var versionResponse = await client.SendAsync(versionRequest);
+            await versionResponse.EnsureSuccessOrThrowAsync("create activity version");
+
+            activityResponse = await JsonSerializer.DeserializeAsync<ActivityResponse>(
+                await versionResponse.Content.ReadAsStreamAsync())
+                ?? throw new InvalidOperationException("Failed to deserialize activity response.");
+        }
+        else
         {
             var createJson = JsonSerializer.Serialize(createPayload);
             var createRequest = new HttpRequestMessage(HttpMethod.Post, $"{DaBasePath}/activities")
@@ -132,32 +151,13 @@ public class DesignAutomationService
             activityResponse = await JsonSerializer.DeserializeAsync<ActivityResponse>(
                 await createResponse.Content.ReadAsStreamAsync())
                 ?? throw new InvalidOperationException("Failed to deserialize activity response.");
-
-            await EnsureAliasAsync(client, $"{DaBasePath}/activities/{activityId}/aliases", "prod", 1, true, twoLeggedToken);
-        }
-        else
-        {
-            await existsResponse.EnsureSuccessOrThrowAsync("get activity");
-
-            var versionJson = JsonSerializer.Serialize(newVersionPayload);
-            var versionRequest = new HttpRequestMessage(HttpMethod.Post, $"{DaBasePath}/activities/{activityId}/versions")
-            {
-                Content = new StringContent(versionJson, Encoding.UTF8, "application/json")
-            };
-            versionRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
-
-            var versionResponse = await client.SendAsync(versionRequest);
-            await versionResponse.EnsureSuccessOrThrowAsync("create activity version");
-
-            activityResponse = await JsonSerializer.DeserializeAsync<ActivityResponse>(
-                await versionResponse.Content.ReadAsStreamAsync())
-                ?? throw new InvalidOperationException("Failed to deserialize activity response.");
-
-            var newVersion = ExtractVersion(activityResponse.Id);
-            await EnsureAliasAsync(client, $"{DaBasePath}/activities/{activityId}/aliases", "prod", newVersion, false, twoLeggedToken);
         }
 
-        return $"{nickname}.{activityId}+prod";
+        var newVersion = ExtractVersion(activityResponse.Id);
+        var aliasExists = await ActivityAliasExistsAsync(client, $"{nickname}.{activityId}", aliasName, twoLeggedToken);
+        await EnsureAliasAsync(client, aliasBasePath, aliasName, newVersion, isNew: !aliasExists, twoLeggedToken);
+
+        return $"{nickname}.{activityId}+{aliasName}";
     }
 
     public async Task<string> SubmitWorkItemAsync(
@@ -263,6 +263,48 @@ public class DesignAutomationService
             return false;
 
         await response.EnsureSuccessOrThrowAsync("check app bundle alias");
+        return true;
+    }
+
+    private static async Task<bool> AppBundleEntityExistsAsync(
+        HttpClient client, string appName, string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/appbundles/{appName}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        await response.EnsureSuccessOrThrowAsync("check app bundle entity");
+        return true;
+    }
+
+    private static async Task<bool> ActivityEntityExistsAsync(
+        HttpClient client, string activityId, string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/activities/{activityId}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        await response.EnsureSuccessOrThrowAsync("check activity entity");
+        return true;
+    }
+
+    private static async Task<bool> ActivityAliasExistsAsync(
+        HttpClient client, string qualifiedId, string alias, string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/activities/{qualifiedId}+{alias}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        await response.EnsureSuccessOrThrowAsync("check activity alias");
         return true;
     }
 

@@ -43,6 +43,9 @@ public class JobRunner
             var engineId = _engineResolver.Resolve(config.Revit.Version!);
             console.MarkupLine($"[blue]Revit engine:[/] {engineId}");
 
+            var aliasName = string.IsNullOrWhiteSpace(config.Environment) ? "prod" : config.Environment;
+            console.MarkupLine($"[blue]Environment:[/] {aliasName}");
+
             if (_engineResolver.IsDeprecationWarning(config.Revit.Version!))
             {
                 console.Write(new Panel("[yellow]Revit 2022 is deprecated and may be removed in a future update.[/]")
@@ -87,7 +90,7 @@ public class JobRunner
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync("Uploading AppBundle...", async _ =>
                     await _designAutomationService.EnsureAppBundleAsync(
-                        config.App.Name!, engineId, zipPath, zipHash, nickname, twoLeggedToken));
+                        config.App.Name!, engineId, zipPath, zipHash, nickname, aliasName, twoLeggedToken));
 
             if (wasSkipped)
                 console.MarkupLine($"[green]✓[/] AppBundle up-to-date (v{bundleVersion}), skipping upload");
@@ -98,7 +101,7 @@ public class JobRunner
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync("Configuring Activity...", async _ =>
                     await _designAutomationService.EnsureActivityAsync(
-                        config.App.Name!, engineId, nickname, twoLeggedToken));
+                        config.App.Name!, engineId, nickname, aliasName, twoLeggedToken));
             console.MarkupLine($"[green]✓[/] Activity configured: {activityId}");
 
             var hasOutputs = !string.IsNullOrWhiteSpace(config.Outputs.Result.Path);

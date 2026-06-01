@@ -7,6 +7,7 @@ namespace RevitCli.Services;
 public class YamlConfigService
 {
     private static readonly HashSet<string> ValidRevitVersions = ["latest", "2022", "2023", "2024", "2025", "2026", "2027"];
+    private static readonly HashSet<string> ValidEnvironments = ["dev", "prod"];
 
     public async Task<JobConfig> LoadAsync(string path)
     {
@@ -59,6 +60,9 @@ public class YamlConfigService
 
         if (string.IsNullOrWhiteSpace(config.App.Path))
             errors.Add("'app.path' is required.");
+
+        if (!string.IsNullOrWhiteSpace(config.Environment) && !ValidEnvironments.Contains(config.Environment))
+            errors.Add($"'environment' must be one of: {string.Join(", ", ValidEnvironments)}. Got: '{config.Environment}'.");
 
         if (string.IsNullOrWhiteSpace(config.Inputs.Model.Type))
             errors.Add("'inputs.model.type' is required.");

@@ -69,6 +69,7 @@ See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 | `app.name` | Yes | Unique name for the AppBundle and Activity. Must not contain hyphens (the Design Automation API rejects hyphenated AppBundle ids). |
 | `app.description` | No | Optional description |
 | `app.path` | Yes | Path to the local AppBundle folder (must contain exactly one `.bundle` subfolder) |
+| `environment` | No | Alias applied to the AppBundle and Activity. Must be `dev` or `prod`. Defaults to `prod`. |
 | `inputs.model.type` | Yes | Must be `cloudWorksharedModel` |
 | `inputs.model.folderUrl` | Yes | ACC browser URL to the folder containing the model |
 | `inputs.model.modelName` | Yes | Name of the Revit model (without `.rvt` extension) |

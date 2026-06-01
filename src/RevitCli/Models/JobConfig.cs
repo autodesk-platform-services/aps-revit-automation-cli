@@ -13,6 +13,9 @@ public class JobConfig
     [YamlMember(Alias = "app")]
     public AppConfig App { get; set; } = new();
 
+    [YamlMember(Alias = "environment")]
+    public string? Environment { get; set; }
+
     [YamlMember(Alias = "inputs")]
     public InputConfig Inputs { get; set; } = new();
 

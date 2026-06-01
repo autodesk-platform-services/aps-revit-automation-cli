@@ -10,6 +10,8 @@ app:
   description: "Example Revit automation job"
   path: "./examples/sample-appbundle"
 
+environment: "prod"
+
 inputs:
   model:
     type: "cloudWorksharedModel"
