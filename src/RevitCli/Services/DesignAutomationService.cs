@@ -76,27 +76,36 @@ public class DesignAutomationService
         string twoLeggedToken)
     {
         var client = _httpClientFactory.CreateClient("aps");
-        var activityId = $"{appName}-activity";
+        var activityId = $"{appName}Activity";
         var qualifiedAppBundle = $"{nickname}.{appName}+prod";
-        var qualifiedActivityId = $"{nickname}.{activityId}";
+        var qualifiedActivityId = $"{nickname}.{activityId}+prod";
 
-        var commandLine = $"$(engine.path)\\\\revitcoreconsole.exe /i \"$(args[inputFile].path)\" /al \"$(appbundles[{appName}].path)\"";
+        var commandLine = $"$(engine.path)\\\\revitcoreconsole.exe /al \"$(appbundles[{appName}].path)\"";
 
-        var activityPayload = new
+        var parameters = new Dictionary<string, object>
+        {
+            ["revitmodel"] = new { verb = "get", localName = "revitmodel.json" },
+            ["toolinputs"] = new { verb = "get", localName = "toolinputs.json" },
+            ["result"] = new { verb = "put", localName = "result.json" }
+        };
+
+        var createPayload = new
         {
             id = activityId,
             engine = engineId,
             commandLine = new[] { commandLine },
             appbundles = new[] { qualifiedAppBundle },
-            parameters = new Dictionary<string, object>
-            {
-                ["inputFile"] = new { verb = "get", required = true },
-                ["inputParams"] = new { verb = "get", localName = "params.json" },
-                ["outputFile"] = new { verb = "put", required = true }
-            }
+            parameters
         };
 
-        var json = JsonSerializer.Serialize(activityPayload);
+        var newVersionPayload = new
+        {
+            engine = engineId,
+            commandLine = new[] { commandLine },
+            appbundles = new[] { qualifiedAppBundle },
+            parameters
+        };
+
         ActivityResponse activityResponse;
 
         var existsRequest = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/activities/{qualifiedActivityId}");
@@ -105,9 +114,10 @@ public class DesignAutomationService
 
         if (existsResponse.StatusCode == HttpStatusCode.NotFound)
         {
+            var createJson = JsonSerializer.Serialize(createPayload);
             var createRequest = new HttpRequestMessage(HttpMethod.Post, $"{DaBasePath}/activities")
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
+                Content = new StringContent(createJson, Encoding.UTF8, "application/json")
             };
             createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
@@ -124,17 +134,18 @@ public class DesignAutomationService
         {
             await existsResponse.EnsureSuccessOrThrowAsync("get activity");
 
-            var updateRequest = new HttpRequestMessage(HttpMethod.Patch, $"{DaBasePath}/activities/{qualifiedActivityId}")
+            var versionJson = JsonSerializer.Serialize(newVersionPayload);
+            var versionRequest = new HttpRequestMessage(HttpMethod.Post, $"{DaBasePath}/activities/{activityId}/versions")
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
+                Content = new StringContent(versionJson, Encoding.UTF8, "application/json")
             };
-            updateRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
+            versionRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", twoLeggedToken);
 
-            var updateResponse = await client.SendAsync(updateRequest);
-            await updateResponse.EnsureSuccessOrThrowAsync("update activity");
+            var versionResponse = await client.SendAsync(versionRequest);
+            await versionResponse.EnsureSuccessOrThrowAsync("create activity version");
 
             activityResponse = await JsonSerializer.DeserializeAsync<ActivityResponse>(
-                await updateResponse.Content.ReadAsStreamAsync())
+                await versionResponse.Content.ReadAsStreamAsync())
                 ?? throw new InvalidOperationException("Failed to deserialize activity response.");
 
             var newVersion = ExtractVersion(activityResponse.Id);
@@ -146,7 +157,8 @@ public class DesignAutomationService
 
     public async Task<string> SubmitWorkItemAsync(
         string activityId,
-        string modelDataJson,
+        string cloudModelJson,
+        string toolInputsJson,
         string outputBucketUrn,
         string twoLeggedToken,
         string threeLeggedToken)
@@ -158,21 +170,17 @@ public class DesignAutomationService
             activityId,
             arguments = new Dictionary<string, object>
             {
-                ["inputFile"] = new
+                ["revitmodel"] = new
                 {
-                    url = modelDataJson,
-                    headers = new Dictionary<string, string>
-                    {
-                        ["Authorization"] = $"Bearer {threeLeggedToken}"
-                    },
+                    url = "data:application/json," + cloudModelJson,
                     verb = "get"
                 },
-                ["inputParams"] = new
+                ["toolinputs"] = new
                 {
-                    url = "data:application/json," + modelDataJson,
+                    url = "data:application/json," + toolInputsJson,
                     verb = "get"
                 },
-                ["outputFile"] = new
+                ["result"] = new
                 {
                     url = outputBucketUrn,
                     headers = new Dictionary<string, string>

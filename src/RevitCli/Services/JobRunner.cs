@@ -111,26 +111,21 @@ public class JobRunner
             var outputObjectName = "result";
             var outputUrn = _ossService.GetObjectUrn(bucketKey, outputObjectName);
 
-            var inputParamsDict = new Dictionary<string, object>
+            var cloudModelJson = JsonSerializer.Serialize(new
             {
-                ["Region"] = cloudModelIds.Region,
-                ["ProjectGuid"] = cloudModelIds.ProjectGuid,
-                ["ModelGuid"] = cloudModelIds.ModelGuid
-            };
+                Region = cloudModelIds.Region,
+                ProjectGuid = cloudModelIds.ProjectGuid,
+                ModelGuid = cloudModelIds.ModelGuid
+            });
 
-            if (config.Inputs.Params is not null)
-            {
-                foreach (var kvp in config.Inputs.Params)
-                    inputParamsDict[kvp.Key] = kvp.Value;
-            }
-
-            var inputParamsJson = JsonSerializer.Serialize(inputParamsDict);
+            var toolInputsJson = JsonSerializer.Serialize(
+                config.Inputs.Params ?? new Dictionary<string, object>());
 
             var workItemId = await console.Status()
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync("Submitting job...", async _ =>
                     await _designAutomationService.SubmitWorkItemAsync(
-                        activityId, inputParamsJson, outputUrn, twoLeggedToken, threeLeggedToken));
+                        activityId, cloudModelJson, toolInputsJson, outputUrn, twoLeggedToken, threeLeggedToken));
             console.MarkupLine($"[green]✓[/] WorkItem submitted: {workItemId}");
 
             var workItemResult = await console.Status()
