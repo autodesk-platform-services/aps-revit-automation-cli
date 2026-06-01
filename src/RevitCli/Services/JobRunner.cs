@@ -148,6 +148,8 @@ public class JobRunner
                     return result;
                 });
 
+            var logPath = await DownloadWorkItemReportAsync(workItemResult, console);
+
             if (workItemResult.Status == "success")
             {
                 if (hasOutputs && bucketKey is not null)
@@ -164,13 +166,13 @@ public class JobRunner
                 }
 
                 stopwatch.Stop();
-                PrintSuccessSummary(console, config, workItemResult, stopwatch.Elapsed);
+                PrintSuccessSummary(console, config, workItemResult, stopwatch.Elapsed, logPath);
                 return 0;
             }
             else
             {
                 stopwatch.Stop();
-                PrintFailurePanel(console, workItemResult, bucketKey);
+                PrintFailurePanel(console, workItemResult, bucketKey, logPath);
                 return 1;
             }
         }
@@ -193,6 +195,31 @@ public class JobRunner
         }
     }
 
+    private static async Task<string?> DownloadWorkItemReportAsync(
+        Models.Api.WorkItemResponse workItem, IAnsiConsole console)
+    {
+        if (string.IsNullOrWhiteSpace(workItem.ReportUrl))
+            return null;
+
+        var logPath = Path.Combine(Directory.GetCurrentDirectory(), $"{workItem.Id}.log");
+
+        try
+        {
+            using var client = new HttpClient();
+            using var stream = await client.GetStreamAsync(workItem.ReportUrl);
+            using var file = new FileStream(logPath, FileMode.Create, FileAccess.Write);
+            await stream.CopyToAsync(file);
+
+            console.MarkupLine($"[green]✓[/] Log saved to: {logPath}");
+            return logPath;
+        }
+        catch (Exception ex)
+        {
+            console.MarkupLine($"[yellow]Warning:[/] failed to download log: {Markup.Escape(ex.Message)}");
+            return null;
+        }
+    }
+
     private async Task CleanupBucketAsync(string bucketKey, string twoLeggedToken)
     {
         try
@@ -203,7 +230,7 @@ public class JobRunner
     }
 
     private static void PrintSuccessSummary(
-        IAnsiConsole console, JobConfig config, Models.Api.WorkItemResponse workItem, TimeSpan elapsed)
+        IAnsiConsole console, JobConfig config, Models.Api.WorkItemResponse workItem, TimeSpan elapsed, string? logPath)
     {
         console.WriteLine();
         var table = new Table()
@@ -242,17 +269,21 @@ public class JobRunner
         if (workItem.ReportUrl is not null)
             table.AddRow("Report URL", workItem.ReportUrl);
 
+        if (logPath is not null)
+            table.AddRow("Log", logPath);
+
         console.Write(table);
     }
 
     private static void PrintFailurePanel(
-        IAnsiConsole console, Models.Api.WorkItemResponse workItem, string? bucketKey)
+        IAnsiConsole console, Models.Api.WorkItemResponse workItem, string? bucketKey, string? logPath)
     {
         console.WriteLine();
         var panel = new Panel(
             $"[red]Status:[/] {workItem.Status}\n" +
             $"[red]WorkItem ID:[/] {workItem.Id}\n" +
             (workItem.ReportUrl is not null ? $"[yellow]Report URL:[/] {workItem.ReportUrl}\n" : "") +
+            (logPath is not null ? $"[yellow]Log:[/] {logPath}\n" : "") +
             (bucketKey is not null ? $"[yellow]Bucket Key:[/] {bucketKey}" : ""))
             .Header("[red]Job Failed[/]")
             .BorderColor(Color.Red);

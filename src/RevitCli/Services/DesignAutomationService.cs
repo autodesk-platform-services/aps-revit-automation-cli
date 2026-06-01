@@ -181,7 +181,8 @@ public class DesignAutomationService
             {
                 url = "data:application/json," + toolInputsJson,
                 verb = "get"
-            }
+            },
+            ["adsk3LeggedToken"] = threeLeggedToken
         };
 
         if (!string.IsNullOrEmpty(outputBucketUrn))
