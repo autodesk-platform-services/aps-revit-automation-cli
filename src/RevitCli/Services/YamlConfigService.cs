@@ -71,11 +71,16 @@ public class YamlConfigService
         if (string.IsNullOrWhiteSpace(config.Inputs.Model.ModelName))
             errors.Add("'inputs.model.modelName' is required.");
 
-        if (string.IsNullOrWhiteSpace(config.Outputs.Result.Type))
-            errors.Add("'outputs.result.type' is required.");
+        var hasOutputType = !string.IsNullOrWhiteSpace(config.Outputs.Result.Type);
+        var hasOutputPath = !string.IsNullOrWhiteSpace(config.Outputs.Result.Path);
 
-        if (string.IsNullOrWhiteSpace(config.Outputs.Result.Path))
-            errors.Add("'outputs.result.path' is required.");
+        if (hasOutputType != hasOutputPath)
+        {
+            if (!hasOutputType)
+                errors.Add("'outputs.result.type' is required when 'outputs.result.path' is set.");
+            if (!hasOutputPath)
+                errors.Add("'outputs.result.path' is required when 'outputs.result.type' is set.");
+        }
 
         return errors;
     }

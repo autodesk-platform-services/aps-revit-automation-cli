@@ -164,37 +164,43 @@ public class DesignAutomationService
         string activityId,
         string cloudModelJson,
         string toolInputsJson,
-        string outputBucketUrn,
+        string? outputBucketUrn,
         string twoLeggedToken,
         string threeLeggedToken)
     {
         var client = _httpClientFactory.CreateClient("aps");
 
+        var arguments = new Dictionary<string, object>
+        {
+            ["revitmodel"] = new
+            {
+                url = "data:application/json," + cloudModelJson,
+                verb = "get"
+            },
+            ["toolinputs"] = new
+            {
+                url = "data:application/json," + toolInputsJson,
+                verb = "get"
+            }
+        };
+
+        if (!string.IsNullOrEmpty(outputBucketUrn))
+        {
+            arguments["result"] = new
+            {
+                url = outputBucketUrn,
+                headers = new Dictionary<string, string>
+                {
+                    ["Authorization"] = $"Bearer {twoLeggedToken}"
+                },
+                verb = "put"
+            };
+        }
+
         var workItemPayload = new
         {
             activityId,
-            arguments = new Dictionary<string, object>
-            {
-                ["revitmodel"] = new
-                {
-                    url = "data:application/json," + cloudModelJson,
-                    verb = "get"
-                },
-                ["toolinputs"] = new
-                {
-                    url = "data:application/json," + toolInputsJson,
-                    verb = "get"
-                },
-                ["result"] = new
-                {
-                    url = outputBucketUrn,
-                    headers = new Dictionary<string, string>
-                    {
-                        ["Authorization"] = $"Bearer {twoLeggedToken}"
-                    },
-                    verb = "put"
-                }
-            }
+            arguments
         };
 
         var json = JsonSerializer.Serialize(workItemPayload);

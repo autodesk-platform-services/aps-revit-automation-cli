@@ -72,9 +72,9 @@ See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 | `inputs.model.type` | Yes | Must be `cloudWorksharedModel` |
 | `inputs.model.folderUrl` | Yes | ACC browser URL to the folder containing the model |
 | `inputs.model.modelName` | Yes | Name of the Revit model (without `.rvt` extension) |
-| `inputs.params` | No | Key-value pairs passed to the AppBundle as `params.json` |
-| `outputs.result.type` | Yes | Output type (e.g., `file`) |
-| `outputs.result.path` | Yes | Local path where the output file will be downloaded |
+| `inputs.params` | No | Key-value pairs passed to the AppBundle as `toolinputs.json` |
+| `outputs.result.type` | No | Output type (e.g., `file`). Required only if `outputs.result.path` is set. Omit the entire `outputs` section to skip output bucket creation and download. |
+| `outputs.result.path` | No | Local path where the output file will be downloaded. Required only if `outputs.result.type` is set. |
 
 ## AppBundle ZIP Structure
 

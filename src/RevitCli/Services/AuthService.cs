@@ -11,7 +11,8 @@ namespace RevitCli.Services;
 public class AuthService
 {
     private const string RedirectUri = "http://localhost:8080/callback";
-    private const string Scopes = "code:all data:read data:write";
+    private const string TwoLeggedScopes = "code:all data:read data:write bucket:create bucket:delete bucket:read";
+    private const string ThreeLeggedScopes = "code:all data:read data:write";
     private static readonly TimeSpan LoginTimeout = TimeSpan.FromMinutes(5);
 
     private readonly IHttpClientFactory _httpClientFactory;
@@ -33,7 +34,7 @@ public class AuthService
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["grant_type"] = "client_credentials",
-                ["scope"] = Scopes
+                ["scope"] = TwoLeggedScopes
             })
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", credentials);
@@ -63,7 +64,7 @@ public class AuthService
     private async Task<string> RunBrowserAuthFlowAsync(string clientId, string clientSecret)
     {
         var encodedRedirect = Uri.EscapeDataString(RedirectUri);
-        var encodedScopes = Uri.EscapeDataString(Scopes);
+        var encodedScopes = Uri.EscapeDataString(ThreeLeggedScopes);
         var authorizeUrl = $"https://developer.api.autodesk.com/authentication/v2/authorize" +
             $"?response_type=code&client_id={clientId}&redirect_uri={encodedRedirect}&scope={encodedScopes}";
 

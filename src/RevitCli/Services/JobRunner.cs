@@ -101,15 +101,25 @@ public class JobRunner
                         config.App.Name!, engineId, nickname, twoLeggedToken));
             console.MarkupLine($"[green]✓[/] Activity configured: {activityId}");
 
-            bucketKey = SanitizeBucketKey($"{config.App.Name}-{DateTime.UtcNow:yyyyMMddHHmmss}");
-            await console.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Creating output bucket...", async _ =>
-                    await _ossService.CreateBucketAsync(bucketKey, twoLeggedToken));
-            console.MarkupLine($"[green]✓[/] Output bucket created: {bucketKey}");
-
+            var hasOutputs = !string.IsNullOrWhiteSpace(config.Outputs.Result.Path);
             var outputObjectName = "result";
-            var outputUrn = _ossService.GetObjectUrn(bucketKey, outputObjectName);
+            string? outputUrn = null;
+
+            if (hasOutputs)
+            {
+                bucketKey = SanitizeBucketKey($"{config.App.Name}-{DateTime.UtcNow:yyyyMMddHHmmss}");
+                await console.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .StartAsync("Creating output bucket...", async _ =>
+                        await _ossService.CreateBucketAsync(bucketKey, twoLeggedToken));
+                console.MarkupLine($"[green]✓[/] Output bucket created: {bucketKey}");
+
+                outputUrn = _ossService.GetObjectUrn(bucketKey, outputObjectName);
+            }
+            else
+            {
+                console.MarkupLine("[blue]No outputs configured; skipping bucket creation.[/]");
+            }
 
             var cloudModelJson = JsonSerializer.Serialize(new
             {
@@ -140,15 +150,18 @@ public class JobRunner
 
             if (workItemResult.Status == "success")
             {
-                await console.Status()
-                    .Spinner(Spinner.Known.Dots)
-                    .StartAsync("Downloading output...", async _ =>
-                        await _ossService.DownloadObjectAsync(
-                            bucketKey, outputObjectName, config.Outputs.Result.Path!, twoLeggedToken));
-                console.MarkupLine($"[green]✓[/] Output downloaded to: {config.Outputs.Result.Path}");
+                if (hasOutputs && bucketKey is not null)
+                {
+                    await console.Status()
+                        .Spinner(Spinner.Known.Dots)
+                        .StartAsync("Downloading output...", async _ =>
+                            await _ossService.DownloadObjectAsync(
+                                bucketKey, outputObjectName, config.Outputs.Result.Path!, twoLeggedToken));
+                    console.MarkupLine($"[green]✓[/] Output downloaded to: {config.Outputs.Result.Path}");
 
-                await CleanupBucketAsync(bucketKey, twoLeggedToken);
-                bucketKey = null;
+                    await CleanupBucketAsync(bucketKey, twoLeggedToken);
+                    bucketKey = null;
+                }
 
                 stopwatch.Stop();
                 PrintSuccessSummary(console, config, workItemResult, stopwatch.Elapsed);
@@ -233,14 +246,14 @@ public class JobRunner
     }
 
     private static void PrintFailurePanel(
-        IAnsiConsole console, Models.Api.WorkItemResponse workItem, string bucketKey)
+        IAnsiConsole console, Models.Api.WorkItemResponse workItem, string? bucketKey)
     {
         console.WriteLine();
         var panel = new Panel(
             $"[red]Status:[/] {workItem.Status}\n" +
             $"[red]WorkItem ID:[/] {workItem.Id}\n" +
             (workItem.ReportUrl is not null ? $"[yellow]Report URL:[/] {workItem.ReportUrl}\n" : "") +
-            $"[yellow]Bucket Key:[/] {bucketKey}")
+            (bucketKey is not null ? $"[yellow]Bucket Key:[/] {bucketKey}" : ""))
             .Header("[red]Job Failed[/]")
             .BorderColor(Color.Red);
 
