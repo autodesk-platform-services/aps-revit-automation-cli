@@ -42,14 +42,19 @@ public class DesignAutomationService
         string nickname,
         string twoLeggedToken)
     {
+        var client = _httpClientFactory.CreateClient("aps");
+        var qualifiedId = $"{nickname}.{appName}";
         var state = await _appStateStore.GetAppStateAsync(appName);
 
         if (state is not null && state.ZipHash == zipHash)
-            return (state.AppBundleVersion, WasSkipped: true);
+        {
+            if (await AppBundleAliasExistsAsync(client, qualifiedId, "prod", twoLeggedToken))
+                return (state.AppBundleVersion, WasSkipped: true);
+
+            state = null;
+        }
 
         var version = state?.AppBundleVersion ?? 0;
-        var client = _httpClientFactory.CreateClient("aps");
-        var qualifiedId = $"{nickname}.{appName}";
 
         AppBundleResponse bundleResponse;
         if (version == 0)
@@ -238,6 +243,20 @@ public class DesignAutomationService
         }
 
         throw new OperationCanceledException(ct);
+    }
+
+    private static async Task<bool> AppBundleAliasExistsAsync(
+        HttpClient client, string qualifiedId, string alias, string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"{DaBasePath}/appbundles/{qualifiedId}+{alias}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.SendAsync(request);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return false;
+
+        await response.EnsureSuccessOrThrowAsync("check app bundle alias");
+        return true;
     }
 
     private static async Task<AppBundleResponse> CreateAppBundleAsync(
