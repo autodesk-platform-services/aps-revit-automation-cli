@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using RevitCli.Models;
 using Spectre.Console;
@@ -8,6 +9,12 @@ namespace RevitCli.Services;
 
 public class JobRunner
 {
+    private static readonly JsonSerializerOptions CloudModelJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
     private readonly RevitEngineResolver _engineResolver;
     private readonly AuthService _authService;
     private readonly DesignAutomationService _designAutomationService;
@@ -128,8 +135,10 @@ public class JobRunner
             {
                 Region = cloudModelIds.Region,
                 ProjectGuid = cloudModelIds.ProjectGuid,
-                ModelGuid = cloudModelIds.ModelGuid
-            });
+                ModelGuid = cloudModelIds.ModelGuid,
+                ToolName = config.Inputs.Tool,
+                Save = config.Inputs.Model.Save ?? true
+            }, CloudModelJsonOptions);
 
             var toolInputsJson = JsonSerializer.Serialize(
                 config.Inputs.Params ?? new Dictionary<string, object>());
