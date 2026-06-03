@@ -1,0 +1,28 @@
+authentication:
+  clientId: "YOUR_CLIENT_ID"
+  clientSecret: "YOUR_CLIENT_SECRET"
+
+revit:
+  version: "latest"
+
+app:
+  name: "myRevitJob"
+  description: "Example Revit automation job"
+  path: "./examples/sample-appbundle"
+
+environment: "prod"
+
+inputs:
+  model:
+    type: "cloudWorksharedModel"
+    folderUrl: "https://acc.autodesk.com/docs/files/projects/00000000-0000-0000-0000-000000000000?folderUrn=urn%3Aadsk.wipprod%3Afs.folder%3Aco.example&viewModel=detail&moduleId=folders"
+    modelName: "MyBuilding"
+    save: true
+  tool: "example"
+  params:
+    someValue: "example"
+
+outputs:
+  result:
+    type: "file"
+    path: "./outputs/result.zip"
