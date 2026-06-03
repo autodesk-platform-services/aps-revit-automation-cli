@@ -176,6 +176,8 @@ public class JobRunner
             {
                 stopwatch.Stop();
                 PrintFailureSummary(console, workItemResult, bucketKey, logPath);
+                if (logPath is not null)
+                    TryOpenFile(logPath, console);
                 return 1;
             }
         }
@@ -214,8 +216,6 @@ public class JobRunner
             await stream.CopyToAsync(file);
 
             console.MarkupLine($"[green]✓[/] Log saved to: {logPath}");
-
-            TryOpenFile(logPath, console);
             return logPath;
         }
         catch (Exception ex)
@@ -287,9 +287,6 @@ public class JobRunner
             }
         }
 
-        if (workItem.ReportUrl is not null)
-            table.AddRow("Report URL", workItem.ReportUrl);
-
         if (logPath is not null)
             table.AddRow("Log", logPath);
 
@@ -303,8 +300,6 @@ public class JobRunner
         console.MarkupLine("[red]Job Failed[/]");
         console.MarkupLine($"[red]Status:[/] {Markup.Escape(workItem.Status ?? "")}");
         console.MarkupLine($"[red]WorkItem ID:[/] {Markup.Escape(workItem.Id ?? "")}");
-        if (workItem.ReportUrl is not null)
-            console.WriteLine($"Report URL: {workItem.ReportUrl}");
         if (logPath is not null)
             console.WriteLine($"Log: {logPath}");
         if (bucketKey is not null)
