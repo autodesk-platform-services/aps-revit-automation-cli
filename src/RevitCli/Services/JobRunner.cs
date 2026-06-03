@@ -175,7 +175,7 @@ public class JobRunner
             else
             {
                 stopwatch.Stop();
-                PrintFailurePanel(console, workItemResult, bucketKey, logPath);
+                PrintFailureSummary(console, workItemResult, bucketKey, logPath);
                 return 1;
             }
         }
@@ -214,12 +214,30 @@ public class JobRunner
             await stream.CopyToAsync(file);
 
             console.MarkupLine($"[green]✓[/] Log saved to: {logPath}");
+
+            TryOpenFile(logPath, console);
             return logPath;
         }
         catch (Exception ex)
         {
             console.MarkupLine($"[yellow]Warning:[/] failed to download log: {Markup.Escape(ex.Message)}");
             return null;
+        }
+    }
+
+    private static void TryOpenFile(string path, IAnsiConsole console)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            console.MarkupLine($"[yellow]Warning:[/] could not auto-open log: {Markup.Escape(ex.Message)}");
         }
     }
 
@@ -278,20 +296,19 @@ public class JobRunner
         console.Write(table);
     }
 
-    private static void PrintFailurePanel(
+    private static void PrintFailureSummary(
         IAnsiConsole console, Models.Api.WorkItemResponse workItem, string? bucketKey, string? logPath)
     {
         console.WriteLine();
-        var panel = new Panel(
-            $"[red]Status:[/] {workItem.Status}\n" +
-            $"[red]WorkItem ID:[/] {workItem.Id}\n" +
-            (workItem.ReportUrl is not null ? $"[yellow]Report URL:[/] {workItem.ReportUrl}\n" : "") +
-            (logPath is not null ? $"[yellow]Log:[/] {logPath}\n" : "") +
-            (bucketKey is not null ? $"[yellow]Bucket Key:[/] {bucketKey}" : ""))
-            .Header("[red]Job Failed[/]")
-            .BorderColor(Color.Red);
-
-        console.Write(panel);
+        console.MarkupLine("[red]Job Failed[/]");
+        console.MarkupLine($"[red]Status:[/] {Markup.Escape(workItem.Status ?? "")}");
+        console.MarkupLine($"[red]WorkItem ID:[/] {Markup.Escape(workItem.Id ?? "")}");
+        if (workItem.ReportUrl is not null)
+            console.WriteLine($"Report URL: {workItem.ReportUrl}");
+        if (logPath is not null)
+            console.WriteLine($"Log: {logPath}");
+        if (bucketKey is not null)
+            console.WriteLine($"Bucket Key: {bucketKey}");
     }
 
     private static string SanitizeBucketKey(string raw)

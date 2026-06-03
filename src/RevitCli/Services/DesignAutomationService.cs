@@ -65,7 +65,7 @@ public class DesignAutomationService
         var bundleEntityExists = await AppBundleEntityExistsAsync(client, appName, twoLeggedToken);
 
         AppBundleResponse bundleResponse = bundleEntityExists
-            ? await UpdateAppBundleAsync(client, qualifiedId, engineId, twoLeggedToken)
+            ? await UpdateAppBundleAsync(client, appName, engineId, twoLeggedToken)
             : await CreateAppBundleAsync(client, appName, engineId, twoLeggedToken);
 
         var newVersion = ExtractVersion(bundleResponse.Id);
@@ -329,12 +329,12 @@ public class DesignAutomationService
     }
 
     private static async Task<AppBundleResponse> UpdateAppBundleAsync(
-        HttpClient client, string qualifiedId, string engineId, string token)
+        HttpClient client, string appName, string engineId, string token)
     {
         var payload = new { engine = engineId };
         var json = JsonSerializer.Serialize(payload);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{DaBasePath}/appbundles/{qualifiedId}/versions")
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{DaBasePath}/appbundles/{appName}/versions")
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
