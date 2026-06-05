@@ -59,6 +59,12 @@ revit auth status
 
 ## YAML Configuration
 
+> **Warning**
+> Your `job.yaml` contains your APS `clientId` and `clientSecret`. **Never commit real credentials to version control.** Add it to your project's `.gitignore`:
+> ```bash
+> echo "job.yaml" >> .gitignore
+> ```
+
 See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 
 | Field | Required | Description |
