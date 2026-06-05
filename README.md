@@ -10,11 +10,34 @@ A .NET 10 console CLI that wraps the Autodesk Design Automation API v3 for Revit
 
 ## Installation
 
+### Option A — dotnet tool (recommended)
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
 ```bash
-dotnet publish src/RevitCli -c Release -o publish
+dotnet tool install -g Autodesk.RevitCli
 ```
 
-The published `revit` executable will be in the `publish/` directory. Add it to your `PATH` for convenience.
+Update to the latest version:
+
+```bash
+dotnet tool update -g Autodesk.RevitCli
+```
+
+Uninstall:
+
+```bash
+dotnet tool uninstall -g Autodesk.RevitCli
+```
+
+### Option B — self-contained binary (no SDK required)
+
+Download the latest ZIP for your architecture from [GitHub Releases](https://github.com/autodesk-platform-services/aps-revit-automation-cli/releases):
+
+- `revit-win-x64-v*.zip` — Windows x64
+- `revit-win-arm64-v*.zip` — Windows ARM64
+
+Extract the ZIP and add the folder to your `PATH`.
 
 ## Commands
 

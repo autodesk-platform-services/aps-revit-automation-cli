@@ -24,6 +24,7 @@ var app = new CommandApp(registrar);
 app.Configure(config =>
 {
     config.SetApplicationName("revit");
+    config.SetApplicationVersion("0.1.0");
 
     config.AddCommand<RunCommand>("run")
         .WithDescription("Execute a Revit automation job from a YAML configuration file");

@@ -6,6 +6,31 @@
     <AssemblyName>revit</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Version -->
+    <Version>0.1.0</Version>
+
+    <!-- NuGet metadata -->
+    <Authors>Autodesk Platform Services</Authors>
+    <Company>Autodesk</Company>
+    <Description>CLI for Autodesk Design Automation API v3 (Revit)</Description>
+    <Copyright>Copyright (c) 2026 Autodesk Platform Services</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/autodesk-platform-services/aps-revit-automation-cli</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+
+    <!-- dotnet tool config -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>revit</ToolCommandName>
+    <PackageId>Autodesk.RevitCli</PackageId>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+
+    <!-- Self-contained publish defaults (effective only when -r <rid> is provided) -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
