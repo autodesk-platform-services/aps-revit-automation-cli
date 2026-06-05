@@ -3,3 +3,7 @@ obj/
 *.user
 *.suo
 .vs/
+publish/
+artifacts/
+nupkg/
+*.zip
