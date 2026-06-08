@@ -37,6 +37,12 @@ public sealed class ValidateCommand : AsyncCommand<ValidateCommand.Settings>
             return 1;
         }
 
+        if (config.App?.Path != null && !config.App.Path.EndsWith(".bundle", StringComparison.OrdinalIgnoreCase))
+        {
+            AnsiConsole.MarkupLine("  [red]•[/] app.path must end with .bundle");
+            return 1;
+        }
+
         if (!Directory.Exists(config.App?.Path))
         {
             AnsiConsole.MarkupLine($"  [red]•[/] app.path directory does not exist: {Markup.Escape(config.App?.Path ?? "(not specified)")}");

@@ -10,7 +10,7 @@ revit:
 app:
   name: "myRevitJob"
   description: "Example Revit automation job"
-  path: "./examples/sample-appbundle"
+  path: "./examples/sample-appbundle/SamplePlugin.bundle"
 
 environment: "prod"
 

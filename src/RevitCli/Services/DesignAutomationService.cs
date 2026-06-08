@@ -13,12 +13,10 @@ public class DesignAutomationService
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(3);
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly AppStateStore _appStateStore;
 
-    public DesignAutomationService(IHttpClientFactory httpClientFactory, AppStateStore appStateStore)
+    public DesignAutomationService(IHttpClientFactory httpClientFactory)
     {
         _httpClientFactory = httpClientFactory;
-        _appStateStore = appStateStore;
     }
 
     public async Task<string> GetNicknameAsync(string twoLeggedToken)
@@ -34,11 +32,10 @@ public class DesignAutomationService
         return content.Trim('"');
     }
 
-    public async Task<(int Version, bool WasSkipped)> EnsureAppBundleAsync(
+    public async Task<(int Version, bool WasSkipped)> CreateAppBundleIfMissingAsync(
         string appName,
         string engineId,
         string zipPath,
-        string zipHash,
         string nickname,
         string aliasName,
         string twoLeggedToken)
@@ -46,21 +43,9 @@ public class DesignAutomationService
         var client = _httpClientFactory.CreateClient("aps");
         var qualifiedId = $"{nickname}.{appName}";
         var aliasBasePath = $"{DaBasePath}/appbundles/{appName}/aliases";
-        var state = await _appStateStore.GetAppStateAsync(appName);
 
-        if (state is not null && state.ZipHash == zipHash)
-        {
-            if (await AppBundleAliasExistsAsync(client, qualifiedId, aliasName, twoLeggedToken))
-                return (state.AppBundleVersion, WasSkipped: true);
-
-            if (await AppBundleEntityExistsAsync(client, appName, twoLeggedToken))
-            {
-                await EnsureAliasAsync(client, aliasBasePath, aliasName, state.AppBundleVersion, isNew: true, twoLeggedToken);
-                return (state.AppBundleVersion, WasSkipped: true);
-            }
-
-            state = null;
-        }
+        if (await AppBundleAliasExistsAsync(client, qualifiedId, aliasName, twoLeggedToken))
+            return (0, WasSkipped: true);
 
         var bundleEntityExists = await AppBundleEntityExistsAsync(client, appName, twoLeggedToken);
 
@@ -74,9 +59,62 @@ public class DesignAutomationService
         var aliasExists = await AppBundleAliasExistsAsync(client, qualifiedId, aliasName, twoLeggedToken);
         await EnsureAliasAsync(client, aliasBasePath, aliasName, newVersion, isNew: !aliasExists, twoLeggedToken);
 
-        await _appStateStore.SaveAppStateAsync(appName, newVersion, zipHash);
+        return (newVersion, WasSkipped: false);
+    }
+
+    public async Task<(int Version, bool WasSkipped)> ForceUpdateAppBundleAsync(
+        string appName,
+        string engineId,
+        string zipPath,
+        string nickname,
+        string aliasName,
+        string twoLeggedToken)
+    {
+        var client = _httpClientFactory.CreateClient("aps");
+        var qualifiedId = $"{nickname}.{appName}";
+        var aliasBasePath = $"{DaBasePath}/appbundles/{appName}/aliases";
+
+        var bundleEntityExists = await AppBundleEntityExistsAsync(client, appName, twoLeggedToken);
+
+        AppBundleResponse bundleResponse = bundleEntityExists
+            ? await UpdateAppBundleAsync(client, appName, engineId, twoLeggedToken)
+            : await CreateAppBundleAsync(client, appName, engineId, twoLeggedToken);
+
+        var newVersion = ExtractVersion(bundleResponse.Id);
+        await UploadZipToS3Async(bundleResponse.UploadParameters!, zipPath);
+
+        var aliasExists = await AppBundleAliasExistsAsync(client, qualifiedId, aliasName, twoLeggedToken);
+        await EnsureAliasAsync(client, aliasBasePath, aliasName, newVersion, isNew: !aliasExists, twoLeggedToken);
 
         return (newVersion, WasSkipped: false);
+    }
+
+    public async Task<bool> CheckAppBundleAliasAsync(
+        string appName,
+        string nickname,
+        string aliasName,
+        string twoLeggedToken)
+    {
+        var client = _httpClientFactory.CreateClient("aps");
+        var qualifiedId = $"{nickname}.{appName}";
+        return await AppBundleAliasExistsAsync(client, qualifiedId, aliasName, twoLeggedToken);
+    }
+
+    public async Task<string> CreateActivityIfMissingAsync(
+        string appName,
+        string engineId,
+        string nickname,
+        string aliasName,
+        string twoLeggedToken)
+    {
+        var client = _httpClientFactory.CreateClient("aps");
+        var activityId = $"{appName}Activity";
+        var qualifiedActivityId = $"{nickname}.{activityId}";
+
+        if (await ActivityAliasExistsAsync(client, qualifiedActivityId, aliasName, twoLeggedToken))
+            return $"{nickname}.{activityId}+{aliasName}";
+
+        return await EnsureActivityAsync(appName, engineId, nickname, aliasName, twoLeggedToken);
     }
 
     public async Task<string> EnsureActivityAsync(
