@@ -8,7 +8,6 @@ using Spectre.Console.Cli;
 var services = new ServiceCollection();
 services.AddApsHttpClient();
 services.AddSingleton<TokenStore>();
-services.AddSingleton<AppStateStore>();
 services.AddSingleton<AuthService>();
 services.AddSingleton<DesignAutomationService>();
 services.AddSingleton<DataManagementService>();
@@ -28,6 +27,9 @@ app.Configure(config =>
 
     config.AddCommand<RunCommand>("run")
         .WithDescription("Execute a Revit automation job from a YAML configuration file");
+
+    config.AddCommand<UpdateCommand>("update")
+        .WithDescription("Update the AppBundle and Activity to a new version without running a job");
 
     config.AddCommand<ValidateCommand>("validate")
         .WithDescription("Validate a job YAML configuration file");

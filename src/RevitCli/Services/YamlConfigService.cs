@@ -60,6 +60,8 @@ public class YamlConfigService
 
         if (string.IsNullOrWhiteSpace(config.App.Path))
             errors.Add("'app.path' is required.");
+        else if (!config.App.Path.EndsWith(".bundle", StringComparison.OrdinalIgnoreCase))
+            errors.Add("'app.path' must point to a .bundle directory (e.g. './MyPlugin.bundle').");
 
         if (!string.IsNullOrWhiteSpace(config.Environment) && !ValidEnvironments.Contains(config.Environment))
             errors.Add($"'environment' must be one of: {string.Join(", ", ValidEnvironments)}. Got: '{config.Environment}'.");
