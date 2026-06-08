@@ -87,27 +87,36 @@ public class JobRunner
                         config.Inputs.Model.FolderUrl!, config.Inputs.Model.ModelName!, threeLeggedToken));
             console.MarkupLine($"[green]✓[/] Model resolved: Region={cloudModelIds.Region}, ProjectGuid={cloudModelIds.ProjectGuid}");
 
-            (zipPath, var zipHash) = await console.Status()
+            var appBundleAliasExists = await console.Status()
                 .Spinner(Spinner.Known.Dots)
-                .StartAsync("Packaging app...", async _ =>
-                    await _appBundlePackager.PackageAsync(config.App.Path!));
-            console.MarkupLine($"[green]✓[/] App packaged (SHA-256: {zipHash[..12]}...)");
+                .StartAsync("Checking AppBundle...", async _ =>
+                    await _designAutomationService.CheckAppBundleAliasAsync(
+                        config.App.Name!, nickname, aliasName, twoLeggedToken));
 
-            var (bundleVersion, wasSkipped) = await console.Status()
-                .Spinner(Spinner.Known.Dots)
-                .StartAsync("Uploading AppBundle...", async _ =>
-                    await _designAutomationService.EnsureAppBundleAsync(
-                        config.App.Name!, engineId, zipPath, zipHash, nickname, aliasName, twoLeggedToken));
-
-            if (wasSkipped)
-                console.MarkupLine($"[green]✓[/] AppBundle up-to-date (v{bundleVersion}), skipping upload");
+            if (appBundleAliasExists)
+            {
+                console.MarkupLine("[green]✓[/] AppBundle already exists (alias found, skipping upload)");
+            }
             else
+            {
+                zipPath = await console.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .StartAsync("Packaging app...", async _ =>
+                        await _appBundlePackager.PackageAsync(config.App.Path!));
+                console.MarkupLine("[green]✓[/] App packaged");
+
+                var (bundleVersion, _) = await console.Status()
+                    .Spinner(Spinner.Known.Dots)
+                    .StartAsync("Uploading AppBundle...", async _ =>
+                        await _designAutomationService.CreateAppBundleIfMissingAsync(
+                            config.App.Name!, engineId, zipPath, nickname, aliasName, twoLeggedToken));
                 console.MarkupLine($"[green]✓[/] AppBundle uploaded (v{bundleVersion})");
+            }
 
             var activityId = await console.Status()
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync("Configuring Activity...", async _ =>
-                    await _designAutomationService.EnsureActivityAsync(
+                    await _designAutomationService.CreateActivityIfMissingAsync(
                         config.App.Name!, engineId, nickname, aliasName, twoLeggedToken));
             console.MarkupLine($"[green]✓[/] Activity configured: {activityId}");
 
