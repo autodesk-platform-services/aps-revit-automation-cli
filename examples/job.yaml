@@ -1,9 +1,4 @@
-# WARNING: This file contains credential placeholders. When using real values,
-# never commit this file to version control. Add "job.yaml" to your .gitignore.
-authentication:
-  clientId: "YOUR_CLIENT_ID"
-  clientSecret: "YOUR_CLIENT_SECRET"
-
+# Credentials are NOT stored here. Run `revit auth login` to authenticate.
 revit:
   version: "latest"
 

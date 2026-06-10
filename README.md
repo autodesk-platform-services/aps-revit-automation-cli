@@ -66,7 +66,7 @@ revit validate ./job.yaml
 
 ### `revit auth login`
 
-Starts a browser-based 3-legged OAuth login flow. Tokens are cached in `~/.revit-cli/tokens.json` and refreshed automatically on subsequent runs.
+Prompts for your APS `clientId` and `clientSecret`, then starts a browser-based 3-legged OAuth login flow. Credentials and tokens are cached in `~/.revit-cli/tokens.json` and refreshed automatically on subsequent runs, so they never need to appear in your `job.yaml`.
 
 ```bash
 revit auth login
@@ -82,18 +82,13 @@ revit auth status
 
 ## YAML Configuration
 
-> **Warning**
-> Your `job.yaml` contains your APS `clientId` and `clientSecret`. **Never commit real credentials to version control.** Add it to your project's `.gitignore`:
-> ```bash
-> echo "job.yaml" >> .gitignore
-> ```
+> **Note**
+> Credentials are not stored in `job.yaml`. Authenticate once with `revit auth login`; your `clientId`, `clientSecret`, and tokens are cached in `~/.revit-cli/tokens.json`.
 
 See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 
 | Field | Required | Description |
 |---|---|---|
-| `authentication.clientId` | Yes | APS application client ID |
-| `authentication.clientSecret` | Yes | APS application client secret |
 | `revit.version` | Yes | Revit version: `latest`, `2022`, `2023`, `2024`, `2025`, `2026`, or `2027`. `latest` resolves to `2027`. |
 | `app.name` | Yes | Unique name for the AppBundle and Activity. Must not contain hyphens (the Design Automation API rejects hyphenated AppBundle ids). |
 | `app.description` | No | Optional description |

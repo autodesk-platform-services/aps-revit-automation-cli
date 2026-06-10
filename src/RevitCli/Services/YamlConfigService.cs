@@ -43,12 +43,6 @@ public class YamlConfigService
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(config.Authentication.ClientId))
-            errors.Add("'authentication.clientId' is required.");
-
-        if (string.IsNullOrWhiteSpace(config.Authentication.ClientSecret))
-            errors.Add("'authentication.clientSecret' is required.");
-
         if (string.IsNullOrWhiteSpace(config.Revit.Version))
             errors.Add("'revit.version' is required.");
         else if (!ValidRevitVersions.Contains(config.Revit.Version))

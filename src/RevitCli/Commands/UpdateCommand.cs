@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using RevitCli.Infrastructure;
 using RevitCli.Models;
 using RevitCli.Services;
 using Spectre.Console;
@@ -17,6 +18,7 @@ public sealed class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
 
     private readonly YamlConfigService _yamlConfigService;
     private readonly AuthService _authService;
+    private readonly TokenStore _tokenStore;
     private readonly RevitEngineResolver _engineResolver;
     private readonly DesignAutomationService _designAutomationService;
     private readonly AppBundlePackager _appBundlePackager;
@@ -24,12 +26,14 @@ public sealed class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
     public UpdateCommand(
         YamlConfigService yamlConfigService,
         AuthService authService,
+        TokenStore tokenStore,
         RevitEngineResolver engineResolver,
         DesignAutomationService designAutomationService,
         AppBundlePackager appBundlePackager)
     {
         _yamlConfigService = yamlConfigService;
         _authService = authService;
+        _tokenStore = tokenStore;
         _engineResolver = engineResolver;
         _designAutomationService = designAutomationService;
         _appBundlePackager = appBundlePackager;
@@ -60,11 +64,12 @@ public sealed class UpdateCommand : AsyncCommand<UpdateCommand.Settings>
             var aliasName = string.IsNullOrWhiteSpace(config.Environment) ? "prod" : config.Environment;
             AnsiConsole.MarkupLine($"[blue]Environment:[/] {aliasName}");
 
+            var (clientId, clientSecret) = await _tokenStore.GetCredentialsAsync();
+
             var twoLeggedToken = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync("Authenticating (2-legged)...", async _ =>
-                    await _authService.GetTwoLeggedTokenAsync(
-                        config.Authentication.ClientId!, config.Authentication.ClientSecret!));
+                    await _authService.GetTwoLeggedTokenAsync(clientId, clientSecret));
             AnsiConsole.MarkupLine("[green]✓[/] 2-legged token acquired");
 
             var nickname = await AnsiConsole.Status()
