@@ -154,9 +154,20 @@ public class JobRunner
                 OpenOption = config.Inputs.Model.OpenOption ?? "OpenAllWorksets"
             }, CloudModelJsonOptions);
 
-            var toolInputsJson = config.Inputs.Tool?.Inputs is not null
-                ? await File.ReadAllTextAsync(config.Inputs.Tool.Inputs)
-                : "{}";
+            var toolInputsJson = "{}";
+            if (!string.IsNullOrWhiteSpace(config.Inputs.Tool?.Inputs))
+            {
+                var rawToolInputsJson = await File.ReadAllTextAsync(config.Inputs.Tool.Inputs);
+                try
+                {
+                    using var parsedToolInputs = JsonDocument.Parse(rawToolInputsJson);
+                    toolInputsJson = JsonSerializer.Serialize(parsedToolInputs.RootElement);
+                }
+                catch (JsonException ex)
+                {
+                    throw new ConfigValidationException([$"'inputs.tool.inputs' must contain valid JSON. {ex.Message}"]);
+                }
+            }
 
             var workItemId = await console.Status()
                 .Spinner(Spinner.Known.Dots)
