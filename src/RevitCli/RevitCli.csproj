@@ -13,7 +13,7 @@
     <!-- NuGet metadata -->
     <Authors>Autodesk Platform Services</Authors>
     <Company>Autodesk</Company>
-    <Description>CLI for Autodesk Design Automation API v3 (Revit)</Description>
+    <Description>CLI for Autodesk Automation API for Revit</Description>
     <Copyright>Copyright (c) 2026 Autodesk Platform Services</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/autodesk-platform-services/aps-revit-automation-cli</RepositoryUrl>
