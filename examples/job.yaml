@@ -20,9 +20,10 @@ inputs:
     folderUrl: "https://acc.autodesk.com/docs/files/projects/00000000-0000-0000-0000-000000000000?folderUrn=urn%3Aadsk.wipprod%3Afs.folder%3Aco.example&viewModel=detail&moduleId=folders"
     modelName: "MyBuilding"
     save: true
-  tool: "example"
-  params:
-    someValue: "example"
+    openOption: "OpenAllWorksets"
+  tool:
+    name: "fill_parameters"
+    inputs: "C:\\path\\to\\toolinputs.json"
 
 outputs:
   result:

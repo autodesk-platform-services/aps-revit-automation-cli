@@ -8,8 +8,5 @@ public class InputConfig
     public CloudModelInput Model { get; set; } = new();
 
     [YamlMember(Alias = "tool")]
-    public string? Tool { get; set; }
-
-    [YamlMember(Alias = "params")]
-    public Dictionary<string, object>? Params { get; set; }
+    public ToolConfig? Tool { get; set; }
 }

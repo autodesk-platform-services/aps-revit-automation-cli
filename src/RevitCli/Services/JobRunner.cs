@@ -145,12 +145,14 @@ public class JobRunner
                 Region = cloudModelIds.Region,
                 ProjectGuid = cloudModelIds.ProjectGuid,
                 ModelGuid = cloudModelIds.ModelGuid,
-                ToolName = config.Inputs.Tool,
-                Save = config.Inputs.Model.Save ?? true
+                ToolName = config.Inputs.Tool?.Name,
+                Save = config.Inputs.Model.Save ?? true,
+                OpenOption = config.Inputs.Model.OpenOption ?? "OpenAllWorksets"
             }, CloudModelJsonOptions);
 
-            var toolInputsJson = JsonSerializer.Serialize(
-                config.Inputs.Params ?? new Dictionary<string, object>());
+            var toolInputsJson = config.Inputs.Tool?.Inputs is not null
+                ? await File.ReadAllTextAsync(config.Inputs.Tool.Inputs)
+                : "{}";
 
             var workItemId = await console.Status()
                 .Spinner(Spinner.Known.Dots)
