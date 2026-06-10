@@ -8,6 +8,7 @@ public class YamlConfigService
 {
     private static readonly HashSet<string> ValidRevitVersions = ["latest", "2022", "2023", "2024", "2025", "2026", "2027"];
     private static readonly HashSet<string> ValidEnvironments = ["dev", "prod"];
+    private static readonly HashSet<string> ValidOpenOptions = ["OpenAllWorksets", "CloseAllWorksets", "CloseWorksetsWithRevitLinks"];
 
     public async Task<JobConfig> LoadAsync(string path)
     {
@@ -42,12 +43,6 @@ public class YamlConfigService
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(config.Authentication.ClientId))
-            errors.Add("'authentication.clientId' is required.");
-
-        if (string.IsNullOrWhiteSpace(config.Authentication.ClientSecret))
-            errors.Add("'authentication.clientSecret' is required.");
-
         if (string.IsNullOrWhiteSpace(config.Revit.Version))
             errors.Add("'revit.version' is required.");
         else if (!ValidRevitVersions.Contains(config.Revit.Version))
@@ -76,6 +71,12 @@ public class YamlConfigService
 
         if (string.IsNullOrWhiteSpace(config.Inputs.Model.ModelName))
             errors.Add("'inputs.model.modelName' is required.");
+
+        if (!string.IsNullOrWhiteSpace(config.Inputs.Model.OpenOption) && !ValidOpenOptions.Contains(config.Inputs.Model.OpenOption))
+            errors.Add($"'inputs.model.openOption' must be one of: {string.Join(", ", ValidOpenOptions)}. Got: '{config.Inputs.Model.OpenOption}'.");
+
+        if (!string.IsNullOrWhiteSpace(config.Inputs.Tool?.Inputs) && !File.Exists(config.Inputs.Tool.Inputs))
+            errors.Add($"'inputs.tool.inputs' file not found: '{config.Inputs.Tool.Inputs}'.");
 
         var hasOutputType = !string.IsNullOrWhiteSpace(config.Outputs.Result.Type);
         var hasOutputPath = !string.IsNullOrWhiteSpace(config.Outputs.Result.Path);

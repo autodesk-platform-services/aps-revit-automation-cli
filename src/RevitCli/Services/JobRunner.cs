@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using RevitCli.Infrastructure;
 using RevitCli.Models;
 using Spectre.Console;
 
@@ -17,6 +18,7 @@ public class JobRunner
 
     private readonly RevitEngineResolver _engineResolver;
     private readonly AuthService _authService;
+    private readonly TokenStore _tokenStore;
     private readonly DesignAutomationService _designAutomationService;
     private readonly DataManagementService _dataManagementService;
     private readonly AppBundlePackager _appBundlePackager;
@@ -25,6 +27,7 @@ public class JobRunner
     public JobRunner(
         RevitEngineResolver engineResolver,
         AuthService authService,
+        TokenStore tokenStore,
         DesignAutomationService designAutomationService,
         DataManagementService dataManagementService,
         AppBundlePackager appBundlePackager,
@@ -32,6 +35,7 @@ public class JobRunner
     {
         _engineResolver = engineResolver;
         _authService = authService;
+        _tokenStore = tokenStore;
         _designAutomationService = designAutomationService;
         _dataManagementService = dataManagementService;
         _appBundlePackager = appBundlePackager;
@@ -60,18 +64,18 @@ public class JobRunner
                     .BorderColor(Color.Yellow));
             }
 
+            var (clientId, clientSecret) = await _tokenStore.GetCredentialsAsync();
+
             twoLeggedToken = await console.Status()
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync("Authenticating (2-legged)...", async _ =>
-                    await _authService.GetTwoLeggedTokenAsync(
-                        config.Authentication.ClientId!, config.Authentication.ClientSecret!));
+                    await _authService.GetTwoLeggedTokenAsync(clientId, clientSecret));
             console.MarkupLine("[green]✓[/] 2-legged token acquired");
 
             var threeLeggedToken = await console.Status()
                 .Spinner(Spinner.Known.Dots)
                 .StartAsync("Authenticating (3-legged)...", async _ =>
-                    await _authService.EnsureThreeLeggedTokenAsync(
-                        config.Authentication.ClientId!, config.Authentication.ClientSecret!));
+                    await _authService.EnsureThreeLeggedTokenAsync(clientId, clientSecret));
             console.MarkupLine("[green]✓[/] 3-legged token acquired");
 
             var nickname = await console.Status()
@@ -145,12 +149,25 @@ public class JobRunner
                 Region = cloudModelIds.Region,
                 ProjectGuid = cloudModelIds.ProjectGuid,
                 ModelGuid = cloudModelIds.ModelGuid,
-                ToolName = config.Inputs.Tool,
-                Save = config.Inputs.Model.Save ?? true
+                ToolName = config.Inputs.Tool?.Name,
+                Save = config.Inputs.Model.Save ?? true,
+                OpenOption = config.Inputs.Model.OpenOption ?? "OpenAllWorksets"
             }, CloudModelJsonOptions);
 
-            var toolInputsJson = JsonSerializer.Serialize(
-                config.Inputs.Params ?? new Dictionary<string, object>());
+            var toolInputsJson = "{}";
+            if (!string.IsNullOrWhiteSpace(config.Inputs.Tool?.Inputs))
+            {
+                var rawToolInputsJson = await File.ReadAllTextAsync(config.Inputs.Tool.Inputs);
+                try
+                {
+                    using var parsedToolInputs = JsonDocument.Parse(rawToolInputsJson);
+                    toolInputsJson = JsonSerializer.Serialize(parsedToolInputs.RootElement);
+                }
+                catch (JsonException ex)
+                {
+                    throw new ConfigValidationException([$"'inputs.tool.inputs' must contain valid JSON. {ex.Message}"]);
+                }
+            }
 
             var workItemId = await console.Status()
                 .Spinner(Spinner.Known.Dots)

@@ -13,10 +13,10 @@ public class AppBundlePackager
         if (!Directory.Exists(bundlePath))
             throw new DirectoryNotFoundException($"Bundle directory not found: '{bundlePath}'");
 
-        var parentDir = Path.GetDirectoryName(bundlePath)!;
         var zipPath = Path.Combine(Path.GetTempPath(), $"revit-cli-{Guid.NewGuid():N}.zip");
 
-        await Task.Run(() => ZipFile.CreateFromDirectory(parentDir, zipPath));
+        await Task.Run(() => ZipFile.CreateFromDirectory(
+            bundlePath, zipPath, CompressionLevel.Optimal, includeBaseDirectory: true));
 
         return zipPath;
     }

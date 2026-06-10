@@ -1,9 +1,4 @@
-# WARNING: This file contains credential placeholders. When using real values,
-# never commit this file to version control. Add "job.yaml" to your .gitignore.
-authentication:
-  clientId: "YOUR_CLIENT_ID"
-  clientSecret: "YOUR_CLIENT_SECRET"
-
+# Credentials are NOT stored here. Run `revit auth login` to authenticate.
 revit:
   version: "latest"
 
@@ -20,9 +15,10 @@ inputs:
     folderUrl: "https://acc.autodesk.com/docs/files/projects/00000000-0000-0000-0000-000000000000?folderUrn=urn%3Aadsk.wipprod%3Afs.folder%3Aco.example&viewModel=detail&moduleId=folders"
     modelName: "MyBuilding"
     save: true
-  tool: "example"
-  params:
-    someValue: "example"
+    openOption: "OpenAllWorksets"
+  tool:
+    name: "fill_parameters"
+    inputs: "C:\\path\\to\\toolinputs.json"
 
 outputs:
   result:

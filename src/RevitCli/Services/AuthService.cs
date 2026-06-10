@@ -139,7 +139,9 @@ public class AuthService
         await _tokenStore.SaveTokenAsync(
             tokenResponse.AccessToken,
             tokenResponse.RefreshToken,
-            tokenResponse.ExpiresIn);
+            tokenResponse.ExpiresIn,
+            clientId,
+            clientSecret);
 
         return tokenResponse.AccessToken;
     }

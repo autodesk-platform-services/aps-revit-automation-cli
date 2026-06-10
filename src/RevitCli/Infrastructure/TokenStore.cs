@@ -58,23 +58,37 @@ public class TokenStore
         {
             AccessToken = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken ?? stored.RefreshToken,
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresIn)
+            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresIn),
+            ClientId = stored.ClientId,
+            ClientSecret = stored.ClientSecret
         };
 
         await SaveAsync(entry);
         return entry.AccessToken;
     }
 
-    public async Task SaveTokenAsync(string accessToken, string? refreshToken, int expiresIn)
+    public async Task SaveTokenAsync(string accessToken, string? refreshToken, int expiresIn, string clientId, string clientSecret)
     {
         var entry = new StoredToken
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken,
-            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(expiresIn)
+            ExpiresAtUtc = DateTime.UtcNow.AddSeconds(expiresIn),
+            ClientId = clientId,
+            ClientSecret = clientSecret
         };
 
         await SaveAsync(entry);
+    }
+
+    public async Task<(string ClientId, string ClientSecret)> GetCredentialsAsync()
+    {
+        var stored = await LoadAsync();
+        if (stored is null || string.IsNullOrWhiteSpace(stored.ClientId) || string.IsNullOrWhiteSpace(stored.ClientSecret))
+            throw new InvalidOperationException(
+                "No stored credentials found. Run 'revit auth login' first.");
+
+        return (stored.ClientId, stored.ClientSecret);
     }
 
     public async Task<StoredToken?> LoadAsync()
@@ -106,5 +120,11 @@ public class TokenStore
 
         [JsonPropertyName("expiresAtUtc")]
         public DateTime ExpiresAtUtc { get; set; }
+
+        [JsonPropertyName("clientId")]
+        public string? ClientId { get; set; }
+
+        [JsonPropertyName("clientSecret")]
+        public string? ClientSecret { get; set; }
     }
 }

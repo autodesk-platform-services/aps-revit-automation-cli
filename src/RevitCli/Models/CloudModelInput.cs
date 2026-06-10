@@ -15,4 +15,7 @@ public class CloudModelInput
 
     [YamlMember(Alias = "save")]
     public bool? Save { get; set; }
+
+    [YamlMember(Alias = "openOption")]
+    public string? OpenOption { get; set; }
 }
