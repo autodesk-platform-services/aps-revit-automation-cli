@@ -22,7 +22,7 @@
     <!-- dotnet tool config -->
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>revit</ToolCommandName>
-    <PackageId>Autodesk.RevitCli</PackageId>
+    <PackageId>revitcli</PackageId>
     <PackageOutputPath>./nupkg</PackageOutputPath>
 
     <!-- Self-contained publish defaults (effective only when -r <rid> is provided) -->
