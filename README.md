@@ -7,6 +7,8 @@
 
 A .NET 10 CLI tool that wraps the Autodesk Platform Services Automation API for Revit. Define a single YAML configuration file describing your inputs and outputs, then run `revit run ./job.yaml` — the CLI handles AppBundle packaging and upload, Activity creation, WorkItem submission, polling, and output downloads automatically.
 
+> **Companion Repository**: this CLI works with the Revit tools from [APS Automation API Revit MCP Tools Sample](https://github.com/autodesk-platform-services/aps-automation-api-revit-mcp-tools-sample).
+
 > **Note**: This project was built with [Claude Code](https://claude.ai/code).
 
 ![thumbnail](thumbnail.png)
