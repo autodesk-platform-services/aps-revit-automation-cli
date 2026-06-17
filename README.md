@@ -11,43 +11,6 @@ A .NET 10 CLI tool that wraps the Autodesk Platform Services (APS) Design Automa
 
 ![thumbnail](thumbnail.png)
 
-## Prerequisites
-
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- An [Autodesk Platform Services](https://aps.autodesk.com/) application (traditional/confidential type) with `code:all`, `data:read`, and `data:write` scopes
-- A Revit AppBundle folder containing a `.bundle` subfolder with your plugin
-
-## Installation
-
-### Option A — dotnet tool (recommended)
-
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
-
-```bash
-dotnet tool install -g Autodesk.RevitCli
-```
-
-Update to the latest version:
-
-```bash
-dotnet tool update -g Autodesk.RevitCli
-```
-
-Uninstall:
-
-```bash
-dotnet tool uninstall -g Autodesk.RevitCli
-```
-
-### Option B — self-contained binary (no SDK required)
-
-Download the latest ZIP for your architecture from [GitHub Releases](https://github.com/autodesk-platform-services/aps-revit-automation-cli/releases):
-
-- `revit-win-x64-v*.zip` — Windows x64
-- `revit-win-arm64-v*.zip` — Windows ARM64
-
-Extract the ZIP and add the folder to your `PATH`.
-
 ## Commands
 
 ### `revit run <yaml-file>`
@@ -63,6 +26,14 @@ Executes a complete Revit automation job:
 
 ```bash
 revit run ./job.yaml
+```
+
+### `revit update <yaml-file>`
+
+Force-uploads the AppBundle and creates or updates the Activity without submitting a WorkItem. Unlike `revit run`, which skips the upload when the AppBundle hash is unchanged, `revit update` always uploads — useful for pushing updated plugin code without running a full job. Run `revit run` afterward to execute the updated bundle.
+
+```bash
+revit update ./job.yaml
 ```
 
 ### `revit validate <yaml-file>`
@@ -126,6 +97,54 @@ my-appbundle/
       PackageContents.xml
 ```
 
+## Development
+
+### Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- An [Autodesk Platform Services](https://aps.autodesk.com/) application (traditional/confidential type) with `code:all`, `data:read`, and `data:write` scopes
+- Provisioned access to [ACC (Autodesk Construction Cloud)](https://construction.autodesk.com/)
+- A Revit AppBundle folder containing a `.bundle` subfolder with your plugin
+
+### Installation
+
+#### Option A — dotnet tool (recommended)
+
+Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+```bash
+dotnet tool install -g revitcli
+```
+
+Update to the latest version:
+
+```bash
+dotnet tool update -g revitcli
+```
+
+Uninstall:
+
+```bash
+dotnet tool uninstall -g revitcli
+```
+
+#### Option B — self-contained binary (no SDK required)
+
+Download the latest ZIP for your architecture from [GitHub Releases](https://github.com/autodesk-platform-services/aps-revit-automation-cli/releases):
+
+- `revit-win-x64-v*.zip` — Windows x64
+- `revit-win-arm64-v*.zip` — Windows ARM64
+
+Extract the ZIP and add the folder to your `PATH`.
+
+### Known Limitations
+
+This tool only supports Windows (win-x64 and win-arm64). Linux and macOS are not supported.
+
+## Troubleshooting
+
+Please contact us via https://aps.autodesk.com/en/support/get-help.
+
 ## License
 
-[MIT](LICENSE)
+This sample is licensed under the terms of the [MIT License](http://opensource.org/licenses/MIT). Please see the [LICENSE](LICENSE) file for more details.
