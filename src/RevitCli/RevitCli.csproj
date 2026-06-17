@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <!-- Version -->
-    <Version>0.1.0</Version>
+    <Version>0.2.1</Version>
 
     <!-- NuGet metadata -->
     <Authors>Autodesk Platform Services</Authors>
