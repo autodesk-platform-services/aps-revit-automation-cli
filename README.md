@@ -5,11 +5,11 @@
 [![Design-Automation](https://img.shields.io/badge/Design%20Automation-v3-green.svg)](https://aps.autodesk.com/en/docs/design-automation/v3/developers_guide/overview/)
 [![license](https://img.shields.io/:license-mit-green.svg)](https://opensource.org/licenses/MIT)
 
-A .NET 10 CLI tool that wraps the Autodesk Platform Services (APS) Design Automation API v3 for Revit workflows. Define a single YAML configuration file describing your AppBundle, Activity, inputs, and outputs, then run `revit run ./job.yaml` — the CLI handles AppBundle packaging and upload, Activity creation, WorkItem submission, polling, and output downloads automatically. Supports Windows x64 and ARM64.
+A .NET 10 CLI tool that wraps the Autodesk Platform Services Automation API for Revit. Define a single YAML configuration file describing your inputs and outputs, then run `revit run ./job.yaml` — the CLI handles AppBundle packaging and upload, Activity creation, WorkItem submission, polling, and output downloads automatically.
 
 > **Note**: This project was built with [Claude Code](https://claude.ai/code).
 
-[![thumbnail](https://github.com/user-attachments/assets/84818a08-46d8-4fff-bb5d-01939f3c412d)](https://github.com/user-attachments/assets/28713419-1590-48a3-9a72-a14ef1725430)
+![thumbnail](thumbnail.png)
 
 https://github.com/user-attachments/assets/28713419-1590-48a3-9a72-a14ef1725430
 
