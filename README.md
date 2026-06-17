@@ -9,6 +9,8 @@ A .NET 10 CLI tool that wraps the Autodesk Platform Services (APS) Design Automa
 
 > **Note**: This project was built with [Claude Code](https://claude.ai/code).
 
+![thumbnail](thumbnail.png)
+
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
