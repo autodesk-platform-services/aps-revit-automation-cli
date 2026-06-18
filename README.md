@@ -76,7 +76,7 @@ See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 | `revit.version` | Yes | Revit version: `latest`, `2022`, `2023`, `2024`, `2025`, `2026`, or `2027`. `latest` resolves to `2027`. |
 | `app.name` | Yes | Unique name for the AppBundle and Activity. Must not contain hyphens (the Automation API rejects hyphenated AppBundle ids). |
 | `app.description` | No | Optional description |
-| `app.path` | Yes | Path to the local AppBundle folder (must contain exactly one `.bundle` subfolder) |
+| `app.path` | Yes | Path to the local AppBundle folder |
 | `environment` | No | Alias applied to the AppBundle and Activity. Must be `dev` or `prod`. Defaults to `prod`. |
 | `inputs.model.type` | Yes | Must be `cloudWorksharedModel` |
 | `inputs.model.folderUrl` | Yes | Fprma browser URL to the folder containing the model |
@@ -90,15 +90,14 @@ See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 
 ## AppBundle ZIP Structure
 
-The `app.path` directory must contain exactly one `.bundle` subfolder. The CLI zips this directory automatically and computes a SHA-256 hash to skip redundant uploads on repeated runs.
+The `app.path` directory must ends with `.bundle`. The CLI zips this directory automatically and computes a SHA-256 hash to skip redundant uploads on repeated runs.
 
 ```
-my-appbundle/
-  MyPlugin.bundle/
-    Contents/
-      MyPlugin.dll
-      MyPlugin.addin
-      PackageContents.xml
+MyPlugin.bundle/
+  Contents/
+    MyPlugin.dll
+    MyPlugin.addin
+    PackageContents.xml
 ```
 
 ## Development
