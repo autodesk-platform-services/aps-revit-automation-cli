@@ -2,7 +2,7 @@
 
 ![platforms](https://img.shields.io/badge/platform-windows-lightgray.svg)
 [![.net](https://img.shields.io/badge/net-10.0-blue.svg)](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
-[![Design-Automation](https://img.shields.io/badge/Design%20Automation-v3-green.svg)](https://aps.autodesk.com/en/docs/design-automation/v3/developers_guide/overview/)
+[![Automation API](https://img.shields.io/badge/Design%20Automation-v3-green.svg)](https://aps.autodesk.com/en/docs/design-automation/v3/developers_guide/overview/)
 [![license](https://img.shields.io/:license-mit-green.svg)](https://opensource.org/licenses/MIT)
 
 A .NET 10 CLI tool that wraps the Autodesk Platform Services Automation API for Revit. Define a single YAML configuration file describing your inputs and outputs, then run `revit run ./job.yaml` — the CLI handles AppBundle packaging and upload, Activity creation, WorkItem submission, polling, and output downloads automatically.
@@ -74,12 +74,12 @@ See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 | Field | Required | Description |
 |---|---|---|
 | `revit.version` | Yes | Revit version: `latest`, `2022`, `2023`, `2024`, `2025`, `2026`, or `2027`. `latest` resolves to `2027`. |
-| `app.name` | Yes | Unique name for the AppBundle and Activity. Must not contain hyphens (the Design Automation API rejects hyphenated AppBundle ids). |
+| `app.name` | Yes | Unique name for the AppBundle and Activity. Must not contain hyphens (the Automation API rejects hyphenated AppBundle ids). |
 | `app.description` | No | Optional description |
 | `app.path` | Yes | Path to the local AppBundle folder (must contain exactly one `.bundle` subfolder) |
 | `environment` | No | Alias applied to the AppBundle and Activity. Must be `dev` or `prod`. Defaults to `prod`. |
 | `inputs.model.type` | Yes | Must be `cloudWorksharedModel` |
-| `inputs.model.folderUrl` | Yes | ACC browser URL to the folder containing the model |
+| `inputs.model.folderUrl` | Yes | Fprma browser URL to the folder containing the model |
 | `inputs.model.modelName` | Yes | Name of the Revit model (without `.rvt` extension) |
 | `inputs.model.save` | No | Whether to save/sync the Revit model after processing. Default: `true`. Set to `false` for read-only operations. |
 | `inputs.model.openOption` | No | Workset open behavior. One of: `OpenAllWorksets` (default), `CloseAllWorksets`, `CloseWorksetsWithRevitLinks`. |
@@ -106,9 +106,9 @@ my-appbundle/
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- An [Autodesk Platform Services](https://aps.autodesk.com/) application (traditional/confidential type) with `code:all`, `data:read`, and `data:write` scopes
-- Provisioned access to [ACC (Autodesk Construction Cloud)](https://construction.autodesk.com/)
-- A Revit AppBundle folder containing a `.bundle` subfolder with your plugin
+- An [Autodesk Platform Services](https://www.youtube.com/watch?v=HvSP9dpJO7E&t) application (traditional type)
+- Provisioned access to [Autodesk Forma](https://www.youtube.com/watch?v=jZU9NbPfDjk&t)
+- An AppBundle folder containing your [Revit plugin](https://aps.autodesk.com/en/docs/design-automation/v3/tutorials/revit/step1-convert-addin/) 
 
 ### Installation
 
