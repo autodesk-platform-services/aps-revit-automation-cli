@@ -29,6 +29,24 @@ public class DataManagementService
         return new CloudModelIds(region, projectGuid, modelGuid);
     }
 
+    public async Task<List<(string DisplayName, CloudModelIds Ids)>> ResolveAllAsync(
+        string folderUrl, string threeLeggedToken)
+    {
+        var (projectId, folderId) = ParseFolderUrl(folderUrl);
+        var client = _httpClientFactory.CreateClient("aps");
+        var (_, region) = await FindHubForProjectAsync(client, projectId, threeLeggedToken);
+        return await FindAllModelsInFolderAsync(client, projectId, folderId, region, threeLeggedToken);
+    }
+
+    public async Task<List<(string DisplayName, CloudModelIds Ids)>> ResolveMultipleByNameAsync(
+        string folderUrl, List<string> modelNames, string threeLeggedToken)
+    {
+        var (projectId, folderId) = ParseFolderUrl(folderUrl);
+        var client = _httpClientFactory.CreateClient("aps");
+        var (_, region) = await FindHubForProjectAsync(client, projectId, threeLeggedToken);
+        return await FindModelsByNameAsync(client, projectId, folderId, modelNames, region, threeLeggedToken);
+    }
+
     internal static (string ProjectId, string FolderId) ParseFolderUrl(string folderUrl)
     {
         var uri = new Uri(folderUrl);
@@ -190,6 +208,153 @@ public class DataManagementService
 
         throw new InvalidOperationException(
             $"Tip version '{tipVersionId}' for item '{displayName}' not found in response 'included' array.");
+    }
+
+    private async Task<List<(string DisplayName, CloudModelIds Ids)>> FindAllModelsInFolderAsync(
+        HttpClient client, string projectId, string folderId, string region, string token)
+    {
+        var results = new List<(string DisplayName, CloudModelIds Ids)>();
+        var url = (string?)$"/data/v1/projects/{projectId}/folders/{Uri.EscapeDataString(folderId)}/contents";
+
+        while (url is not null)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.SendAsync(request);
+            await response.EnsureSuccessOrThrowAsync("list folder contents");
+
+            var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var items = doc.RootElement.GetProperty("data");
+
+            foreach (var item in items.EnumerateArray())
+            {
+                if (item.GetProperty("type").GetString() != "items")
+                    continue;
+
+                var displayName = item.GetProperty("attributes")
+                    .GetProperty("displayName")
+                    .GetString() ?? string.Empty;
+
+                var tipVersionId = item.GetProperty("relationships")
+                    .GetProperty("tip")
+                    .GetProperty("data")
+                    .GetProperty("id")
+                    .GetString();
+
+                if (tipVersionId is null)
+                    continue;
+
+                if (!IsRevitFile(doc.RootElement, tipVersionId))
+                    continue;
+
+                var (projectGuid, modelGuid) = ExtractGuidsFromIncluded(doc.RootElement, tipVersionId, displayName);
+                results.Add((displayName, new CloudModelIds(region, projectGuid, modelGuid)));
+            }
+
+            url = null;
+            if (doc.RootElement.TryGetProperty("links", out var links) &&
+                links.TryGetProperty("next", out var next) &&
+                next.TryGetProperty("href", out var href))
+            {
+                url = href.GetString();
+            }
+        }
+
+        return results;
+    }
+
+    private async Task<List<(string DisplayName, CloudModelIds Ids)>> FindModelsByNameAsync(
+        HttpClient client, string projectId, string folderId, List<string> modelNames,
+        string region, string token)
+    {
+        var remaining = new HashSet<string>(
+            modelNames.Select(NormalizeModelName), StringComparer.OrdinalIgnoreCase);
+        var results = new List<(string DisplayName, CloudModelIds Ids)>();
+        var availableNames = new List<string>();
+        var url = (string?)$"/data/v1/projects/{projectId}/folders/{Uri.EscapeDataString(folderId)}/contents";
+
+        while (url is not null)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await client.SendAsync(request);
+            await response.EnsureSuccessOrThrowAsync("list folder contents");
+
+            var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            var items = doc.RootElement.GetProperty("data");
+
+            foreach (var item in items.EnumerateArray())
+            {
+                if (item.GetProperty("type").GetString() != "items")
+                    continue;
+
+                var displayName = item.GetProperty("attributes")
+                    .GetProperty("displayName")
+                    .GetString() ?? string.Empty;
+
+                availableNames.Add(displayName);
+                var normalized = NormalizeModelName(displayName);
+
+                if (!remaining.Contains(normalized))
+                    continue;
+
+                var tipVersionId = item.GetProperty("relationships")
+                    .GetProperty("tip")
+                    .GetProperty("data")
+                    .GetProperty("id")
+                    .GetString();
+
+                if (tipVersionId is null)
+                    continue;
+
+                var (projectGuid, modelGuid) = ExtractGuidsFromIncluded(doc.RootElement, tipVersionId, displayName);
+                results.Add((displayName, new CloudModelIds(region, projectGuid, modelGuid)));
+                remaining.Remove(normalized);
+            }
+
+            url = null;
+            if (doc.RootElement.TryGetProperty("links", out var links) &&
+                links.TryGetProperty("next", out var next) &&
+                next.TryGetProperty("href", out var href))
+            {
+                url = href.GetString();
+            }
+        }
+
+        if (remaining.Count > 0)
+        {
+            var missing = string.Join(", ", remaining.Select(n => $"'{n}'"));
+            var available = availableNames.Count > 0
+                ? string.Join(", ", availableNames.Select(n => $"'{n}'"))
+                : "(folder is empty)";
+            throw new InvalidOperationException(
+                $"Model(s) not found in folder: {missing}. Available items: {available}");
+        }
+
+        return results;
+    }
+
+    private static bool IsRevitFile(JsonElement root, string tipVersionId)
+    {
+        if (!root.TryGetProperty("included", out var included) || included.ValueKind != JsonValueKind.Array)
+            return false;
+
+        foreach (var entry in included.EnumerateArray())
+        {
+            if (entry.GetProperty("id").GetString() != tipVersionId)
+                continue;
+
+            var extensionType = entry.GetProperty("attributes")
+                .GetProperty("extension")
+                .GetProperty("type")
+                .GetString() ?? string.Empty;
+
+            return extensionType.Contains("RevitFile", StringComparison.OrdinalIgnoreCase);
+        }
+
+        return false;
     }
 
     private static string NormalizeModelName(string name)
