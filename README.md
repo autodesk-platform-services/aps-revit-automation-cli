@@ -56,6 +56,15 @@ Prompts for your APS `clientId` and `clientSecret`, then starts a browser-based 
 revit auth login
 ```
 
+### `revit maxmodels [count]`
+
+Gets or sets the maximum number of models allowed per multi-model automation run. The limit is stored in `~/.revit-cli/config.json` and defaults to 10.
+
+```bash
+revit maxmodels          # prints current limit
+revit maxmodels 15       # sets limit to 15
+```
+
 ### `revit auth status`
 
 Shows the current authentication token status (valid, expired, or missing) and expiry time.
@@ -79,14 +88,74 @@ See [`examples/job.yaml`](examples/job.yaml) for a complete example.
 | `app.path` | Yes | Path to the local AppBundle folder |
 | `environment` | No | Alias applied to the AppBundle and Activity. Must be `dev` or `prod`. Defaults to `prod`. |
 | `inputs.model.type` | Yes | Must be `cloudWorksharedModel` |
-| `inputs.model.folderUrl` | Yes | Fprma browser URL to the folder containing the model |
-| `inputs.model.modelName` | Yes | Name of the Revit model (without `.rvt` extension) |
+| `inputs.model.folderUrl` | Yes | Browser URL to the folder containing the model |
+| `inputs.model.modelName` | Conditional | Name of a single Revit model (without `.rvt`). Mutually exclusive with `modelNames`. Omit both to process all RVT models in the folder. |
+| `inputs.model.modelNames` | Conditional | List of Revit model names to process. Mutually exclusive with `modelName`. |
 | `inputs.model.save` | No | Whether to save/sync the Revit model after processing. Default: `true`. Set to `false` for read-only operations. |
 | `inputs.model.openOption` | No | Workset open behavior. One of: `OpenAllWorksets` (default), `CloseAllWorksets`, `CloseWorksetsWithRevitLinks`. |
 | `inputs.tool.name` | No | Tool identifier passed to the AppBundle (emitted as `toolName` in `revitmodel.json`). |
 | `inputs.tool.inputs` | No | Path to a local JSON file delivered to the AppBundle as `toolinputs.json`. If absent, `toolinputs.json` receives `{}`. |
 | `outputs.result.type` | No | Output type (e.g., `file`). Required only if `outputs.result.path` is set. Omit the entire `outputs` section to skip output bucket creation and download. |
-| `outputs.result.path` | No | Local path where the output file will be downloaded. Required only if `outputs.result.type` is set. |
+| `outputs.result.path` | No | Local path where the output file will be downloaded. Required only if `outputs.result.type` is set. Supports `{modelName}` placeholder for multi-model runs. |
+
+## Multi-Model Automation
+
+The CLI supports three modes for specifying which models to process:
+
+**Case 1 — Single model** (default): set `inputs.model.modelName` to a single model name. Behavior is unchanged from previous versions.
+
+```yaml
+inputs:
+  model:
+    folderUrl: "https://acc.autodesk.com/docs/files/projects/..."
+    modelName: "MyBuilding"
+```
+
+**Case 2 — All models in folder**: omit both `modelName` and `modelNames`. The CLI discovers all RVT models in the folder and submits one workitem per model.
+
+```yaml
+inputs:
+  model:
+    folderUrl: "https://acc.autodesk.com/docs/files/projects/..."
+    # no modelName or modelNames — processes all RVT models
+```
+
+**Case 3 — Explicit list**: set `inputs.model.modelNames` to a list of model names.
+
+```yaml
+inputs:
+  model:
+    folderUrl: "https://acc.autodesk.com/docs/files/projects/..."
+    modelNames:
+      - "BuildingA"
+      - "BuildingB"
+```
+
+`modelName` and `modelNames` are mutually exclusive — setting both produces a validation error.
+
+### Output paths
+
+For multi-model runs, use the `{modelName}` placeholder in the output path to create per-model output files:
+
+```yaml
+outputs:
+  result:
+    type: "file"
+    path: "./outputs/{modelName}/result.zip"
+```
+
+If `{modelName}` is not present in the output path during a multi-model run, the CLI automatically inserts a subdirectory per model (e.g., `./outputs/buildinga/result.zip`).
+
+### Model limit
+
+The maximum number of models per run defaults to 10. Use `revit maxmodels` to view or change the limit:
+
+```bash
+revit maxmodels          # print current limit
+revit maxmodels 20       # increase to 20
+```
+
+See [`examples/job-all.yaml`](examples/job-all.yaml) and [`examples/job-multi.yaml`](examples/job-multi.yaml) for complete multi-model examples.
 
 ## AppBundle ZIP Structure
 

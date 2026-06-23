@@ -1,10 +1,11 @@
+# Multi-model automation: run all RVT models in a folder (case 2)
 # Credentials are NOT stored here. Run `revit auth login` to authenticate.
 revit:
   version: "latest"
 
 app:
   name: "myRevitJob"
-  description: "Example Revit automation job"
+  description: "Run automation on all models in folder"
   path: "./examples/sample-appbundle/SamplePlugin.bundle"
 
 environment: "prod"
@@ -13,12 +14,7 @@ inputs:
   model:
     type: "cloudWorksharedModel"
     folderUrl: "https://acc.autodesk.com/docs/files/projects/00000000-0000-0000-0000-000000000000?folderUrn=urn%3Aadsk.wipprod%3Afs.folder%3Aco.example&viewModel=detail&moduleId=folders"
-    modelName: "MyBuilding"
-    # Alternative: omit modelName to run all RVT models in the folder (case 2)
-    # Alternative: use modelNames for an explicit list (case 3):
-    # modelNames:
-    #   - "ModelA"
-    #   - "ModelB"
+    # No modelName or modelNames — all RVT models in the folder will be processed
     save: true
     openOption: "OpenAllWorksets"
   tool:
@@ -28,4 +24,4 @@ inputs:
 outputs:
   result:
     type: "file"
-    path: "./outputs/result.zip"
+    path: "./outputs/{modelName}/result.zip"
