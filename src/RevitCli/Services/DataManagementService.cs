@@ -225,31 +225,37 @@ public class DataManagementService
             await response.EnsureSuccessOrThrowAsync("list folder contents");
 
             var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
-            var items = doc.RootElement.GetProperty("data");
 
-            foreach (var item in items.EnumerateArray())
+            if (doc.RootElement.TryGetProperty("included", out var versions) &&
+                versions.ValueKind == JsonValueKind.Array)
             {
-                if (item.GetProperty("type").GetString() != "items")
-                    continue;
+                foreach (var version in versions.EnumerateArray())
+                {
+                    if (version.GetProperty("type").GetString() != "versions")
+                        continue;
 
-                var displayName = item.GetProperty("attributes")
-                    .GetProperty("displayName")
-                    .GetString() ?? string.Empty;
+                    if (!IsRevitCloudModel(version))
+                        continue;
 
-                var tipVersionId = item.GetProperty("relationships")
-                    .GetProperty("tip")
-                    .GetProperty("data")
-                    .GetProperty("id")
-                    .GetString();
+                    var displayName = version.GetProperty("attributes")
+                        .GetProperty("displayName")
+                        .GetString() ?? string.Empty;
 
-                if (tipVersionId is null)
-                    continue;
+                    var extensionData = version.GetProperty("attributes")
+                        .GetProperty("extension")
+                        .GetProperty("data");
 
-                if (!IsRevitFile(doc.RootElement, tipVersionId))
-                    continue;
+                    if (!extensionData.TryGetProperty("projectGuid", out var projectGuidEl) ||
+                        !extensionData.TryGetProperty("modelGuid", out var modelGuidEl))
+                        continue;
 
-                var (projectGuid, modelGuid) = ExtractGuidsFromIncluded(doc.RootElement, tipVersionId, displayName);
-                results.Add((displayName, new CloudModelIds(region, projectGuid, modelGuid)));
+                    var projectGuid = projectGuidEl.GetString();
+                    var modelGuid = modelGuidEl.GetString();
+                    if (projectGuid is null || modelGuid is null)
+                        continue;
+
+                    results.Add((displayName, new CloudModelIds(region, projectGuid, modelGuid)));
+                }
             }
 
             url = null;
@@ -336,25 +342,15 @@ public class DataManagementService
         return results;
     }
 
-    private static bool IsRevitFile(JsonElement root, string tipVersionId)
+    private static bool IsRevitCloudModel(JsonElement version)
     {
-        if (!root.TryGetProperty("included", out var included) || included.ValueKind != JsonValueKind.Array)
+        if (!version.TryGetProperty("attributes", out var attributes) ||
+            !attributes.TryGetProperty("extension", out var extension) ||
+            !extension.TryGetProperty("type", out var typeEl))
             return false;
 
-        foreach (var entry in included.EnumerateArray())
-        {
-            if (entry.GetProperty("id").GetString() != tipVersionId)
-                continue;
-
-            var extensionType = entry.GetProperty("attributes")
-                .GetProperty("extension")
-                .GetProperty("type")
-                .GetString() ?? string.Empty;
-
-            return extensionType.Contains("RevitFile", StringComparison.OrdinalIgnoreCase);
-        }
-
-        return false;
+        var extensionType = typeEl.GetString() ?? string.Empty;
+        return extensionType.Contains("C4RModel", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeModelName(string name)
