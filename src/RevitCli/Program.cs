@@ -14,6 +14,7 @@ services.AddSingleton<DataManagementService>();
 services.AddSingleton<OssService>();
 services.AddSingleton<RevitEngineResolver>();
 services.AddSingleton<AppBundlePackager>();
+services.AddSingleton<CliConfigStore>();
 services.AddSingleton<YamlConfigService>();
 services.AddSingleton<JobRunner>();
 
