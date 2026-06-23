@@ -52,9 +52,16 @@ public sealed class ValidateCommand : AsyncCommand<ValidateCommand.Settings>
         var outputPath = config.Outputs?.Result?.Path;
         if (!string.IsNullOrEmpty(outputPath))
         {
-            var parentDir = Path.GetDirectoryName(Path.GetFullPath(outputPath));
-            if (!string.IsNullOrEmpty(parentDir) && !Directory.Exists(parentDir))
-                AnsiConsole.MarkupLine($"  [yellow]⚠[/] outputs.result.path parent directory does not exist yet: {Markup.Escape(parentDir)}");
+            if (outputPath.Contains("{modelName}", StringComparison.OrdinalIgnoreCase))
+            {
+                AnsiConsole.MarkupLine("[blue]i[/] outputs.result.path uses {modelName} placeholder; directories will be created per model at runtime.");
+            }
+            else
+            {
+                var parentDir = Path.GetDirectoryName(Path.GetFullPath(outputPath));
+                if (!string.IsNullOrEmpty(parentDir) && !Directory.Exists(parentDir))
+                    AnsiConsole.MarkupLine($"  [yellow]⚠[/] outputs.result.path parent directory does not exist yet: {Markup.Escape(parentDir)}");
+            }
         }
 
         AnsiConsole.Write(new Panel("[green]YAML is valid[/]").BorderColor(Color.Green));

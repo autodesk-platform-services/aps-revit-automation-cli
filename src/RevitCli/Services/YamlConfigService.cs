@@ -1,3 +1,4 @@
+using RevitCli.Infrastructure;
 using RevitCli.Models;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -9,6 +10,13 @@ public class YamlConfigService
     private static readonly HashSet<string> ValidRevitVersions = ["latest", "2022", "2023", "2024", "2025", "2026", "2027"];
     private static readonly HashSet<string> ValidEnvironments = ["dev", "prod"];
     private static readonly HashSet<string> ValidOpenOptions = ["OpenAllWorksets", "CloseAllWorksets", "CloseWorksetsWithRevitLinks"];
+
+    private readonly CliConfigStore _cliConfigStore;
+
+    public YamlConfigService(CliConfigStore cliConfigStore)
+    {
+        _cliConfigStore = cliConfigStore;
+    }
 
     public async Task<JobConfig> LoadAsync(string path)
     {
@@ -32,14 +40,14 @@ public class YamlConfigService
             throw new ConfigValidationException([$"YAML parse error: {ex.Message}"]);
         }
 
-        var errors = Validate(config);
+        var errors = await ValidateAsync(config);
         if (errors.Count > 0)
             throw new ConfigValidationException(errors);
 
         return config;
     }
 
-    private static List<string> Validate(JobConfig config)
+    private async Task<List<string>> ValidateAsync(JobConfig config)
     {
         var errors = new List<string>();
 
@@ -69,8 +77,22 @@ public class YamlConfigService
         if (string.IsNullOrWhiteSpace(config.Inputs.Model.FolderUrl))
             errors.Add("'inputs.model.folderUrl' is required.");
 
-        if (string.IsNullOrWhiteSpace(config.Inputs.Model.ModelName))
-            errors.Add("'inputs.model.modelName' is required.");
+        var hasModelName = !string.IsNullOrWhiteSpace(config.Inputs.Model.ModelName);
+        var hasModelNames = config.Inputs.Model.ModelNames is { Count: > 0 };
+        var hasEmptyModelNames = config.Inputs.Model.ModelNames is not null && config.Inputs.Model.ModelNames.Count == 0;
+
+        if (hasModelName && hasModelNames)
+            errors.Add("'inputs.model.modelName' and 'inputs.model.modelNames' are mutually exclusive.");
+
+        if (hasEmptyModelNames)
+            errors.Add("'inputs.model.modelNames' must not be empty when provided.");
+
+        if (hasModelNames)
+        {
+            var maxModels = await _cliConfigStore.GetMaxModelsAsync();
+            if (config.Inputs.Model.ModelNames!.Count > maxModels)
+                errors.Add($"'inputs.model.modelNames' exceeds the configured max of {maxModels} models. Run 'revit maxmodels <n>' to increase.");
+        }
 
         if (!string.IsNullOrWhiteSpace(config.Inputs.Model.OpenOption) && !ValidOpenOptions.Contains(config.Inputs.Model.OpenOption))
             errors.Add($"'inputs.model.openOption' must be one of: {string.Join(", ", ValidOpenOptions)}. Got: '{config.Inputs.Model.OpenOption}'.");

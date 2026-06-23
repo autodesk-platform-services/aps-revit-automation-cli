@@ -13,6 +13,9 @@ public class CloudModelInput
     [YamlMember(Alias = "modelName")]
     public string? ModelName { get; set; }
 
+    [YamlMember(Alias = "modelNames")]
+    public List<string>? ModelNames { get; set; }
+
     [YamlMember(Alias = "save")]
     public bool? Save { get; set; }
 

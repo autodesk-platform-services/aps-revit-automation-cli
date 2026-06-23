@@ -14,6 +14,7 @@ services.AddSingleton<DataManagementService>();
 services.AddSingleton<OssService>();
 services.AddSingleton<RevitEngineResolver>();
 services.AddSingleton<AppBundlePackager>();
+services.AddSingleton<CliConfigStore>();
 services.AddSingleton<YamlConfigService>();
 services.AddSingleton<JobRunner>();
 
@@ -33,6 +34,9 @@ app.Configure(config =>
 
     config.AddCommand<ValidateCommand>("validate")
         .WithDescription("Validate a job YAML configuration file");
+
+    config.AddCommand<MaxModelsCommand>("maxmodels")
+        .WithDescription("Get or set the maximum number of models per automation run");
 
     config.AddBranch("auth", auth =>
     {
